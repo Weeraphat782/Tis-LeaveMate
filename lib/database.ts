@@ -1,5 +1,43 @@
 import { supabase } from './supabase'
 
+// Utility function for retrying operations with exponential backoff
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error as Error
+
+      // Don't retry on certain errors
+      if (error instanceof Error) {
+        if (error.message.includes('JWT') ||
+            error.message.includes('auth') ||
+            error.message.includes('permission') ||
+            error.message.includes('Invalid API key')) {
+          throw error
+        }
+      }
+
+      if (attempt === maxRetries) {
+        break
+      }
+
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000
+      console.log(`Database operation failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms:`, error)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+
+  throw lastError!
+}
+
 export interface LeaveRequest {
   id: string
   user_id: string
@@ -28,98 +66,41 @@ export const leaveRequestsApi = {
   // Get all leave requests for a user
   async getUserLeaveRequests(userId: string): Promise<LeaveRequest[]> {
     try {
-      // First get the leave requests
-      const { data: leaveRequests, error: leaveError } = await supabase
-        .from('leave_requests')
-        .select('*')
-        .eq('user_id', userId)
-        .order('submitted_at', { ascending: false })
+      const result = await retryOperation(async () => {
+        // First get the leave requests
+        const { data: leaveRequests, error: leaveError } = await supabase
+          .from('leave_requests')
+          .select('*')
+          .eq('user_id', userId)
+          .order('submitted_at', { ascending: false })
 
-      if (leaveError) {
-        console.error('Error fetching leave requests:', leaveError)
-        return []
-      }
+        if (leaveError) {
+          console.error('Error fetching leave requests:', leaveError)
+          throw new Error(`Failed to fetch leave requests: ${leaveError.message}`)
+        }
 
-      if (!leaveRequests || leaveRequests.length === 0) {
-        console.log('No leave requests found for user')
-        return []
-      }
+        if (!leaveRequests) {
+          console.log('No leave requests data returned')
+          return []
+        }
 
-      // Get user profile information
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('id', userId)
-        .single()
+        // Get user profile information with retry
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', userId)
+          .single()
 
-      const userName = profile?.full_name || profile?.email?.split('@')[0] || 'Unknown'
-      const userEmail = profile?.email || ''
+        // Profile error is not critical, just log it
+        if (profileError) {
+          console.warn('Error fetching user profile:', profileError)
+        }
 
-      console.log('Fetched user leave requests:', leaveRequests.length, 'records')
-      return leaveRequests.map(item => ({
-        id: item.id,
-        user_id: item.user_id,
-        userName,
-        userEmail,
-        leaveType: item.leave_type,
-        selectedDates: item.selected_dates || [],
-        days: item.days,
-        reason: item.reason,
-        status: item.status,
-        submittedAt: item.submitted_at,
-        approvedAt: item.approved_at,
-        approvedBy: item.approved_by,
-        approvedByName: item.approved_by_name,
-      }))
-    } catch (err) {
-      console.error('Unexpected error fetching user leave requests:', err)
-      return []
-    }
-  },
+        const userName = profile?.full_name || profile?.email?.split('@')[0] || 'Unknown'
+        const userEmail = profile?.email || ''
 
-  // Get all leave requests (for team view)
-  async getAllLeaveRequests(): Promise<LeaveRequest[]> {
-    try {
-      // First get all leave requests
-      const { data: leaveRequests, error: leaveError } = await supabase
-        .from('leave_requests')
-        .select('*')
-        .order('submitted_at', { ascending: false })
-
-      if (leaveError) {
-        console.error('Error fetching all leave requests:', leaveError)
-        return []
-      }
-
-      if (!leaveRequests || leaveRequests.length === 0) {
-        return []
-      }
-
-      // Get all unique user IDs
-      const userIds = [...new Set(leaveRequests.map(req => req.user_id))]
-
-      // Get profiles for all users
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, email, full_name')
-        .in('id', userIds)
-
-      if (profileError) {
-        console.error('Error fetching profiles:', profileError)
-      }
-
-      // Create a map of user profiles
-      const profileMap = new Map()
-      profiles?.forEach(profile => {
-        profileMap.set(profile.id, profile)
-      })
-
-      return leaveRequests.map(item => {
-        const profile = profileMap.get(item.user_id)
-        const userName = profile?.full_name || profile?.email?.split('@')[0] || `User ${item.user_id.slice(0, 8)}`
-        const userEmail = profile?.email || item.user_id
-
-        return {
+        console.log('Successfully fetched user leave requests:', leaveRequests.length, 'records')
+        return leaveRequests.map(item => ({
           id: item.id,
           user_id: item.user_id,
           userName,
@@ -133,10 +114,88 @@ export const leaveRequestsApi = {
           approvedAt: item.approved_at,
           approvedBy: item.approved_by,
           approvedByName: item.approved_by_name,
-        }
+        }))
       })
+
+      return result
     } catch (err) {
-      console.error('Unexpected error fetching all leave requests:', err)
+      console.error('Failed to fetch user leave requests after retries:', err)
+      // Return empty array instead of throwing to prevent UI crashes
+      return []
+    }
+  },
+
+  // Get all leave requests (for team view)
+  async getAllLeaveRequests(): Promise<LeaveRequest[]> {
+    try {
+      const result = await retryOperation(async () => {
+        // First get all leave requests
+        const { data: leaveRequests, error: leaveError } = await supabase
+          .from('leave_requests')
+          .select('*')
+          .order('submitted_at', { ascending: false })
+
+        if (leaveError) {
+          console.error('Error fetching all leave requests:', leaveError)
+          throw new Error(`Failed to fetch all leave requests: ${leaveError.message}`)
+        }
+
+        if (!leaveRequests) {
+          console.log('No leave requests data returned')
+          return []
+        }
+
+        if (leaveRequests.length === 0) {
+          return []
+        }
+
+        // Get all unique user IDs
+        const userIds = [...new Set(leaveRequests.map(req => req.user_id))]
+
+        // Get profiles for all users
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .in('id', userIds)
+
+        if (profileError) {
+          console.warn('Error fetching profiles:', profileError)
+        }
+
+        // Create a map of user profiles
+        const profileMap = new Map()
+        profiles?.forEach(profile => {
+          profileMap.set(profile.id, profile)
+        })
+
+        console.log('Successfully fetched all leave requests:', leaveRequests.length, 'records')
+        return leaveRequests.map(item => {
+          const profile = profileMap.get(item.user_id)
+          const userName = profile?.full_name || profile?.email?.split('@')[0] || `User ${item.user_id.slice(0, 8)}`
+          const userEmail = profile?.email || item.user_id
+
+          return {
+            id: item.id,
+            user_id: item.user_id,
+            userName,
+            userEmail,
+            leaveType: item.leave_type,
+            selectedDates: item.selected_dates || [],
+            days: item.days,
+            reason: item.reason,
+            status: item.status,
+            submittedAt: item.submitted_at,
+            approvedAt: item.approved_at,
+            approvedBy: item.approved_by,
+            approvedByName: item.approved_by_name,
+          }
+        })
+      })
+
+      return result
+    } catch (err) {
+      console.error('Failed to fetch all leave requests after retries:', err)
+      // Return empty array instead of throwing to prevent UI crashes
       return []
     }
   },
@@ -252,47 +311,52 @@ export const leaveRequestsApi = {
 export const leaveStatsApi = {
   async getUserLeaveStats(userId: string): Promise<LeaveStats> {
     try {
-      const { data, error } = await supabase
-        .from('leave_requests')
-        .select('leave_type, days, status')
-        .eq('user_id', userId)
+      const result = await retryOperation(async () => {
+        const { data, error } = await supabase
+          .from('leave_requests')
+          .select('leave_type, days, status')
+          .eq('user_id', userId)
 
-      if (error) {
-        console.error('Error fetching leave stats:', error)
-        console.error('Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        return { personalUsed: 0, vacationUsed: 0, sickUsed: 0, pending: 0 }
-      }
+        if (error) {
+          console.error('Error fetching leave stats:', error)
+          console.error('Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          })
+          throw new Error(`Failed to fetch leave stats: ${error.message}`)
+        }
 
-      const stats = { personalUsed: 0, vacationUsed: 0, sickUsed: 0, pending: 0 }
+        const stats = { personalUsed: 0, vacationUsed: 0, sickUsed: 0, pending: 0 }
 
-      data?.forEach(request => {
-        if (request.status === 'approved' || request.status === 'pending') {
-          switch (request.leave_type) {
-            case 'Personal Leave':
-              stats.personalUsed += request.days
-              break
-            case 'Vacation Leave':
-              stats.vacationUsed += request.days
-              break
-            case 'Sick Leave':
-              stats.sickUsed += request.days
-              break
+        data?.forEach(request => {
+          if (request.status === 'approved' || request.status === 'pending') {
+            switch (request.leave_type) {
+              case 'Personal Leave':
+                stats.personalUsed += request.days
+                break
+              case 'Vacation Leave':
+                stats.vacationUsed += request.days
+                break
+              case 'Sick Leave':
+                stats.sickUsed += request.days
+                break
+            }
           }
-        }
-        if (request.status === 'pending') {
-          stats.pending += 1
-        }
+          if (request.status === 'pending') {
+            stats.pending += 1
+          }
+        })
+
+        console.log('Successfully calculated leave stats:', stats)
+        return stats
       })
 
-      console.log('Calculated leave stats:', stats)
-      return stats
+      return result
     } catch (err) {
-      console.error('Unexpected error fetching leave stats:', err)
+      console.error('Failed to fetch leave stats after retries:', err)
+      // Return default stats instead of throwing to prevent UI crashes
       return { personalUsed: 0, vacationUsed: 0, sickUsed: 0, pending: 0 }
     }
   },

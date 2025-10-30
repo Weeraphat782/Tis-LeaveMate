@@ -23,6 +23,21 @@ export const supabase = createClient(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true
+    },
+    global: {
+      headers: {
+        'x-client-info': 'tis-leavemate'
+      }
+    },
+    db: {
+      schema: 'public'
+    },
+    // Add timeout to prevent hanging requests
+    rest: {
+      timeout: 30000 // 30 seconds timeout
+    },
+    realtime: {
+      timeout: 30000 // 30 seconds timeout for realtime
     }
   }
 )

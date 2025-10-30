@@ -40,7 +40,7 @@ interface LeaveRecordsTableProps {
 
 export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRecordsTableProps) {
   const { toast } = useToast()
-  const [records, setRecords] = useState<LeaveRecord[]>([])
+  const [records, setRecords] = useState<LeaveRequest[]>([])
   const [selectedRecord, setSelectedRecord] = useState<LeaveRequest | null>(null)
   const [showApproveDialog, setShowApproveDialog] = useState(false)
   const [approvalDate, setApprovalDate] = useState("")
@@ -48,7 +48,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
 
   // Edit dialog states
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [editingRecord, setEditingRecord] = useState<LeaveRecord | null>(null)
+  const [editingRecord, setEditingRecord] = useState<LeaveRequest | null>(null)
   const [editLeaveType, setEditLeaveType] = useState("")
   const [editSelectedDates, setEditSelectedDates] = useState<Date[]>([])
   const [editReason, setEditReason] = useState("")

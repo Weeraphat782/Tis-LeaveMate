@@ -40,6 +40,14 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log('🚀 Submit button clicked in', process.env.NODE_ENV)
+    console.log('📋 Form data:', {
+      leaveType,
+      selectedDates: selectedDates.length,
+      reason: reason.length,
+      currentUser: !!currentUser
+    })
+
     const days = calculateDays()
     const selectedLeaveType = LEAVE_TYPES.find((lt) => lt.value === leaveType)
 
@@ -61,6 +69,7 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       return
     }
 
+    console.log('✅ Form validation passed, calling API...')
     // Save to Supabase
     const result = await leaveRequestsApi.createLeaveRequest({
       user_id: currentUser.id,

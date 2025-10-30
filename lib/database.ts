@@ -144,40 +144,6 @@ export const leaveRequestsApi = {
   // Create a new leave request
   async createLeaveRequest(leaveRequest: Omit<LeaveRequest, 'id' | 'submittedAt'>): Promise<{ success: boolean; error?: string }> {
     try {
-      // Check Supabase configuration first
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      console.log('Environment check in createLeaveRequest:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseKey,
-        url: supabaseUrl ? 'configured' : 'missing'
-      })
-
-      if (!supabaseUrl || !supabaseKey) {
-        console.error('❌ Supabase configuration missing')
-        return {
-          success: false,
-          error: 'Database not configured. Please check environment variables.'
-        }
-      }
-
-      // Check if user is authenticated
-      console.log('Checking authentication...')
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-      if (authError) {
-        console.error('Auth error:', authError)
-        return { success: false, error: `Authentication failed: ${authError.message}` }
-      }
-
-      if (!user) {
-        console.error('No user found')
-        return { success: false, error: 'Please log in to submit leave requests' }
-      }
-
-      console.log('User authenticated:', user.id)
-
       const { error } = await supabase
         .from('leave_requests')
         .insert({
@@ -190,14 +156,13 @@ export const leaveRequestsApi = {
         })
 
       if (error) {
-        console.error('Database error:', error)
-        return { success: false, error: `Database error: ${error.message}` }
+        console.error('Error creating leave request:', error)
+        return { success: false, error: error.message }
       }
 
-      console.log('Leave request created successfully')
       return { success: true }
     } catch (err) {
-      console.error('Unexpected error:', err)
+      console.error('Unexpected error creating leave request:', err)
       return { success: false, error: 'Unexpected error occurred' }
     }
   },

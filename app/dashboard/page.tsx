@@ -24,7 +24,6 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect check:', { user: !!user, loading, NODE_ENV: process.env.NODE_ENV })
     if (!user && !loading) {
       console.log('Dashboard: No user, redirecting to login')
       router.push("/")

@@ -148,6 +148,12 @@ export const leaveRequestsApi = {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+      console.log('🔧 Production debug - Environment variables:')
+      console.log('- URL:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'undefined')
+      console.log('- KEY exists:', !!supabaseKey)
+      console.log('- KEY length:', supabaseKey?.length || 0)
+      console.log('- NODE_ENV:', process.env.NODE_ENV)
+
       if (!supabaseUrl || supabaseUrl.includes('placeholder') || !supabaseKey || supabaseKey.includes('placeholder')) {
         console.error('❌ Using placeholder Supabase credentials!')
         console.error('Please check your environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')

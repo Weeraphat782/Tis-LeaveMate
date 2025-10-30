@@ -40,7 +40,7 @@ interface LeaveRecordsTableProps {
 
 export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRecordsTableProps) {
   const { toast } = useToast()
-  const [records, setRecords] = useState<LeaveRequest[]>([])
+  const [records, setRecords] = useState<LeaveRecord[]>([])
   const [selectedRecord, setSelectedRecord] = useState<LeaveRequest | null>(null)
   const [showApproveDialog, setShowApproveDialog] = useState(false)
   const [approvalDate, setApprovalDate] = useState("")
@@ -48,7 +48,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
 
   // Edit dialog states
   const [showEditDialog, setShowEditDialog] = useState(false)
-  const [editingRecord, setEditingRecord] = useState<LeaveRequest | null>(null)
+  const [editingRecord, setEditingRecord] = useState<LeaveRecord | null>(null)
   const [editLeaveType, setEditLeaveType] = useState("")
   const [editSelectedDates, setEditSelectedDates] = useState<Date[]>([])
   const [editReason, setEditReason] = useState("")
@@ -56,6 +56,9 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   // Filter states for team view
   const [accountFilter, setAccountFilter] = useState<string>("all")
   const [monthFilter, setMonthFilter] = useState<string>("all")
+
+  // Track previous user ID to detect login/logout
+  const [prevUserId, setPrevUserId] = useState<string | null>(null)
 
   const loadRecords = async () => {
     if (viewMode === "personal") {
@@ -114,15 +117,36 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   }
 
   useEffect(() => {
+    console.log('Loading records for user:', currentUser.id, 'viewMode:', viewMode)
     loadRecords()
   }, [currentUser.id, viewMode, refreshKey])
 
   // Reload records when window regains focus (for multi-user updates)
   useEffect(() => {
-    const handleFocus = () => loadRecords()
+    const handleFocus = () => {
+      console.log('Window focused, reloading records for user:', currentUser.id)
+      loadRecords()
+    }
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
   }, [currentUser.id, viewMode, refreshKey])
+
+  // Detect user change (login/logout) and force reload
+  useEffect(() => {
+    // If user ID changed, force reload data
+    if (prevUserId !== null && prevUserId !== currentUser.id) {
+      console.log('User changed from', prevUserId, 'to', currentUser.id, '- forcing data reload')
+      setRecords([]) // Clear existing records
+      loadRecords()
+    }
+    setPrevUserId(currentUser.id)
+  }, [currentUser.id, prevUserId])
+
+  // Force reload when component mounts (important for login/logout scenarios)
+  useEffect(() => {
+    console.log('Component mounted, loading records for user:', currentUser.id)
+    loadRecords()
+  }, [])
 
   const handleApprove = (record: LeaveRequest) => {
     // Prevent users from approving their own requests
@@ -222,9 +246,13 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   }
 
   const handleDelete = async (recordId: string) => {
+    console.log('🗑️ UI: Starting delete for record ID:', recordId)
+
     const result = await leaveRequestsApi.deleteLeaveRequest(recordId)
+    console.log('📥 UI: deleteLeaveRequest result:', result)
 
     if (!result.success) {
+      console.error('❌ UI: Delete failed:', result.error)
       toast({
         title: "Error",
         description: result.error || "Failed to delete leave request",
@@ -233,6 +261,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
       return
     }
 
+    console.log('✅ UI: Delete successful, reloading records...')
     loadRecords()
 
     toast({

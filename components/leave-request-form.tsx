@@ -38,10 +38,13 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('🎯 handleSubmit called with event:', e.type)
     e.preventDefault()
+    console.log('✅ Form submission started')
 
     const days = calculateDays()
     const selectedLeaveType = LEAVE_TYPES.find((lt) => lt.value === leaveType)
+    console.log('📊 Form data:', { leaveType, selectedDates, reason, days, selectedLeaveType })
 
     if (!selectedLeaveType) {
       toast({
@@ -90,34 +93,50 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       status: "pending",
     })
 
-    // Save to Supabase
-    const result = await leaveRequestsApi.createLeaveRequest({
-      user_id: currentUser.id,
-      userName: currentUser.name,
-      userEmail: currentUser.email,
-      leaveType: selectedLeaveType.label,
-      selectedDates: selectedDates.map(date => date.toISOString()),
-      days,
-      reason,
-      status: "pending",
-      approvedAt: null,
-      approvedBy: null,
-      approvedByName: null,
-    })
+    console.log('📤 Starting leave request submission...')
 
-    if (!result.success) {
+    try {
+      // Save to Supabase
+      const result = await leaveRequestsApi.createLeaveRequest({
+        user_id: currentUser.id,
+        userName: currentUser.name,
+        userEmail: currentUser.email,
+        leaveType: selectedLeaveType.label,
+        selectedDates: selectedDates.map(date => date.toISOString()),
+        days,
+        reason,
+        status: "pending",
+        approvedAt: null,
+        approvedBy: null,
+        approvedByName: null,
+      })
+
+      console.log('📥 createLeaveRequest result:', result)
+
+      if (!result.success) {
+        console.error('❌ Submit failed:', result.error)
+        toast({
+          title: "Error",
+          description: result.error || "Failed to submit leave request",
+          variant: "destructive",
+        })
+        return
+      }
+
+      console.log('✅ Submit successful, showing success toast')
+      toast({
+        title: "Success",
+        description: "Leave request submitted successfully",
+      })
+    } catch (error) {
+      console.error('💥 Unexpected error in handleSubmit:', error)
       toast({
         title: "Error",
-        description: result.error || "Failed to submit leave request",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
       return
     }
-
-    toast({
-      title: "Success",
-      description: "Leave request submitted successfully",
-    })
 
     // Reset form
     setLeaveType("")

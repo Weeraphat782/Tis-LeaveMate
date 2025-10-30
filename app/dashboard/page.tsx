@@ -23,6 +23,15 @@ export default function DashboardPage() {
     setRefreshKey(prev => prev + 1)
   }
 
+  // Reset states when user changes (login/logout)
+  useEffect(() => {
+    if (user) {
+      console.log('User logged in, resetting dashboard state for:', user.id)
+      setShowForm(false)
+      setRefreshKey(0) // Reset refresh key to trigger data reload
+    }
+  }, [user])
+
   useEffect(() => {
     if (!user && !loading) {
       console.log('Dashboard: No user, redirecting to login')

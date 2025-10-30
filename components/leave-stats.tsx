@@ -22,7 +22,11 @@ export function LeaveStats({ currentUser, refreshKey }: LeaveStatsProps) {
     pending: 0,
   })
 
+  // Track previous user ID to detect login/logout
+  const [prevUserId, setPrevUserId] = useState<string | null>(null)
+
   useEffect(() => {
+    console.log('Loading stats for user:', currentUser.id, 'refreshKey:', refreshKey)
     const loadStats = async () => {
       const stats = await leaveStatsApi.getUserLeaveStats(currentUser.id)
       setStats(stats)
@@ -30,6 +34,32 @@ export function LeaveStats({ currentUser, refreshKey }: LeaveStatsProps) {
 
     loadStats()
   }, [currentUser.id, refreshKey])
+
+  // Detect user change (login/logout) and force reload
+  useEffect(() => {
+    // If user ID changed, force reload data
+    if (prevUserId !== null && prevUserId !== currentUser.id) {
+      console.log('User changed in LeaveStats from', prevUserId, 'to', currentUser.id, '- forcing data reload')
+      setStats({ personalUsed: 0, vacationUsed: 0, sickUsed: 0, pending: 0 }) // Reset stats
+      const loadStats = async () => {
+        const stats = await leaveStatsApi.getUserLeaveStats(currentUser.id)
+        setStats(stats)
+      }
+      loadStats()
+    }
+    setPrevUserId(currentUser.id)
+  }, [currentUser.id, prevUserId])
+
+  // Force reload when component mounts (for login/logout scenarios)
+  useEffect(() => {
+    console.log('LeaveStats component mounted, loading stats for user:', currentUser.id)
+    const loadStats = async () => {
+      const stats = await leaveStatsApi.getUserLeaveStats(currentUser.id)
+      setStats(stats)
+    }
+
+    loadStats()
+  }, [])
 
   const statCards = [
     {

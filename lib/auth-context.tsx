@@ -72,35 +72,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true
 
-    // Get initial session
-    const initAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-
-        if (!mounted) return
-        if (session?.user) {
-          console.log('✅ Initial session found:', session.user.id)
-          await ensureUserProfile(session.user)
-          setSession(session)
-          setUser(session.user)
-        } else {
-          console.log('❌ No initial session')
-          setSession(null)
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Error getting initial session:', error)
-        setSession(null)
-        setUser(null)
-      } finally {
-        if (mounted) {
-          setLoading(false)
-          setIsInitialized(true)
-        }
-      }
-    }
-
-    initAuth()
+    // Since persistSession is disabled, we don't restore session automatically
+    // Only listen for auth changes from user actions
+    console.log('🚀 Auth initialization - no session persistence')
+    setSession(null)
+    setUser(null)
+    setCurrentUserId(null)
+    setLoading(false)
+    setIsInitialized(true)
 
     // Listen for auth changes
     const {
@@ -110,17 +89,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       console.log('🔄 Auth state changed:', event, session?.user?.id || 'no user')
 
-      // Handle sign out
+      // Handle sign out - clear everything
       if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out')
+        console.log('👋 User signed out - clearing session')
         setSession(null)
         setUser(null)
         setCurrentUserId(null)
         setIsLoggedOut(true)
+
+        // Clear any remaining session data
+        try {
+          localStorage.clear()
+          sessionStorage.clear()
+        } catch (error) {
+          console.error('Error clearing storage on signout:', error)
+        }
         return
       }
 
-      // Handle sign in
+      // Handle sign in - set session but don't persist
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('👤 User signed in:', session.user.id)
         await ensureUserProfile(session.user)

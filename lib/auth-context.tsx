@@ -34,6 +34,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isLoggedOut, setIsLoggedOut] = useState(false)
 
   const ensureUserProfile = async (user: any) => {
     try {
@@ -69,38 +70,78 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
+    let mounted = true
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!mounted) return
+        if (session?.user) {
+          console.log('✅ Initial session found:', session.user.id)
+          await ensureUserProfile(session.user)
+          setSession(session)
+          setUser(session.user)
+        } else {
+          console.log('❌ No initial session')
+          setSession(null)
+          setUser(null)
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error)
+        setSession(null)
+        setUser(null)
+      } finally {
+        if (mounted) {
+          setLoading(false)
+          setIsInitialized(true)
+        }
+      }
+    }
+
+    initAuth()
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', event, session?.user ? 'USER_LOGGED_IN' : 'USER_LOGGED_OUT')
+      if (!mounted) return
 
-      const newUserId = session?.user?.id ?? null
+      console.log('🔄 Auth state changed:', event, session?.user?.id || 'no user')
 
-      // Normal auth state update - let dashboard handle data loading
-      setSession(session)
-      setUser(session?.user ?? null)
-      setCurrentUserId(newUserId)
-      setLoading(false)
-
-      // Ensure profile exists when user signs in
-      if (session?.user && event === 'SIGNED_IN') {
-        console.log('📝 Ensuring user profile exists for:', session.user.id)
-        await ensureUserProfile(session.user)
+      // Handle sign out
+      if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out')
+        setSession(null)
+        setUser(null)
+        setCurrentUserId(null)
+        setIsLoggedOut(true)
+        return
       }
 
-      // Mark as initialized after first auth state change
-      setIsInitialized(true)
+      // Handle sign in
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('👤 User signed in:', session.user.id)
+        await ensureUserProfile(session.user)
+        setSession(session)
+        setUser(session.user)
+        setCurrentUserId(session.user.id)
+        setIsLoggedOut(false)
+      }
+
+      // Handle token refresh
+      if (event === 'TOKEN_REFRESHED' && session?.user) {
+        console.log('🔄 Token refreshed')
+        setSession(session)
+        setUser(session.user)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
@@ -132,34 +173,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const signOut = async () => {
-    console.log('Auth Context: Signing out...')
+    console.log('🚪 Auth Context: Starting sign out process...')
+
     try {
-      // Force clear local state first
+      // Step 1: Clear local state immediately
       setSession(null)
       setUser(null)
+      setCurrentUserId(null)
+      setIsLoggedOut(true)
 
+      // Step 2: Call Supabase sign out
       const { error } = await supabase.auth.signOut()
 
-      if (!error) {
-        console.log('Auth Context: Sign out successful')
+      if (error) {
+        console.error('❌ Auth Context: Supabase sign out error:', error)
       } else {
-        console.error('Auth Context: Sign out error:', error)
+        console.log('✅ Auth Context: Supabase sign out successful')
       }
 
-      // Additional cleanup - clear any persisted auth data
+      // Step 3: Comprehensive cleanup of all storage
       try {
+        console.log('🧹 Clearing all storage...')
+
+        // Clear Supabase auth data
         localStorage.removeItem('supabase.auth.token')
+        localStorage.removeItem('last_user_id')
+        localStorage.setItem('auth_logged_out', 'true')
+
+        // Clear session storage
         sessionStorage.clear()
+
+        // Clear any Supabase-related localStorage keys
+        const keys = Object.keys(localStorage)
+        keys.forEach(key => {
+          if (key.startsWith('supabase') || key.includes('auth')) {
+            localStorage.removeItem(key)
+          }
+        })
+
+        console.log('✅ Storage cleared successfully')
       } catch (storageErr) {
-        console.error('Auth Context: Error clearing storage:', storageErr)
+        console.error('❌ Error clearing storage:', storageErr)
       }
 
       return { error }
     } catch (err) {
-      console.error('Auth Context: Sign out threw error:', err)
+      console.error('💥 Auth Context: Sign out threw error:', err)
       // Force clear state even if signOut throws
       setSession(null)
       setUser(null)
+      setCurrentUserId(null)
+      setIsLoggedOut(true)
       return { error: err as any }
     }
   }

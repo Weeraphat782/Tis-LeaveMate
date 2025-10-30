@@ -67,15 +67,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
-    console.log('🔐 AuthProvider initializing...')
-
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      console.log('🔑 Initial session check:', {
-        hasSession: !!session,
-        userId: session?.user?.id,
-        error: error?.message
-      })
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
@@ -85,13 +78,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔄 Auth state changed:', {
-        event,
-        userId: session?.user?.id,
-        email: session?.user?.email,
-        hasSession: !!session,
-        NODE_ENV: process.env.NODE_ENV
-      })
+      console.log('Auth state changed:', event, session?.user ? 'USER_LOGGED_IN' : 'USER_LOGGED_OUT')
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)

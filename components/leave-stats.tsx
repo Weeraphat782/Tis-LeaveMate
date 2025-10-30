@@ -23,15 +23,9 @@ export function LeaveStats({ currentUser, refreshKey }: LeaveStatsProps) {
   })
 
   useEffect(() => {
-    console.log(`📈 LeaveStats: refreshKey changed to ${refreshKey}, loading stats...`)
     const loadStats = async () => {
-      try {
-        const stats = await leaveStatsApi.getUserLeaveStats(currentUser.id)
-        console.log(`📊 Stats loaded:`, stats)
-        setStats(stats)
-      } catch (error) {
-        console.error('❌ Error loading stats:', error)
-      }
+      const stats = await leaveStatsApi.getUserLeaveStats(currentUser.id)
+      setStats(stats)
     }
 
     loadStats()

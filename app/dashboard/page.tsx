@@ -20,9 +20,7 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0)
 
   const handleRefresh = () => {
-    const newKey = refreshKey + 1
-    console.log(`🔄 Refresh triggered: ${refreshKey} -> ${newKey}`)
-    setRefreshKey(newKey)
+    setRefreshKey(prev => prev + 1)
   }
 
   useEffect(() => {
@@ -210,11 +208,8 @@ export default function DashboardPage() {
                 email: user.email || '',
                 name: user.user_metadata?.name || user.email?.split('@')[0] || ''
               }} onSuccess={() => {
-                console.log('📝 LeaveRequestForm onSuccess triggered')
-                console.log('🔄 Setting showForm to false and calling handleRefresh...')
                 setShowForm(false)
                 handleRefresh()
-                console.log('✅ Form closed and refresh triggered')
               }} />
             </div>
           )}

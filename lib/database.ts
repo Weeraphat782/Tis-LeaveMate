@@ -148,24 +148,18 @@ export const leaveRequestsApi = {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-      console.log('🔧 Production debug - Environment variables:')
-      console.log('- URL:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'undefined')
-      console.log('- KEY exists:', !!supabaseKey)
-      console.log('- KEY length:', supabaseKey?.length || 0)
-      console.log('- NODE_ENV:', process.env.NODE_ENV)
-
       if (!supabaseUrl || supabaseUrl.includes('placeholder') || !supabaseKey || supabaseKey.includes('placeholder')) {
         console.error('❌ Using placeholder Supabase credentials!')
         console.error('Please check your environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
         return { success: false, error: 'Application not properly configured. Please check environment variables.' }
       }
 
-      console.log('📝 createLeaveRequest called with:', {
+      console.log('createLeaveRequest called with:', {
         user_id: leaveRequest.user_id,
         leave_type: leaveRequest.leaveType,
-        selected_dates: leaveRequest.selectedDates.length + ' dates',
+        selected_dates: leaveRequest.selectedDates,
         days: leaveRequest.days,
-        reason: leaveRequest.reason.substring(0, 50) + (leaveRequest.reason.length > 50 ? '...' : ''),
+        reason: leaveRequest.reason,
         status: leaveRequest.status,
       })
 
@@ -181,11 +175,10 @@ export const leaveRequestsApi = {
         })
 
       if (error) {
-        console.error('❌ Database insert error:', error)
+        console.error('Error creating leave request:', error)
         return { success: false, error: error.message }
       }
 
-      console.log('✅ Leave request created successfully')
       return { success: true }
     } catch (err) {
       console.error('Unexpected error creating leave request:', err)

@@ -106,7 +106,6 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
     })
 
     if (!result.success) {
-      console.error('❌ Submit failed:', result.error)
       toast({
         title: "Error",
         description: result.error || "Failed to submit leave request",
@@ -115,7 +114,6 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       return
     }
 
-    console.log('✅ Submit successful, calling onSuccess...')
     toast({
       title: "Success",
       description: "Leave request submitted successfully",
@@ -125,8 +123,6 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
     setLeaveType("")
     setSelectedDates([])
     setReason("")
-
-    console.log('🔄 Calling onSuccess callback...')
     onSuccess()
   }
 

@@ -1,4 +1,4 @@
-# TIS LeaveMate - Leave Management System
+# TIS Leave Management - Leave Management System
 
 A modern, full-stack leave management system built with **Next.js 16**, **React 19**, **TypeScript**, and **Supabase** for authentication and database.
 

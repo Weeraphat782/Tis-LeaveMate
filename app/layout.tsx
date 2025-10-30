@@ -10,7 +10,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "TIS LeaveMate - Leave Management System",
+  title: "TIS Leave Management - Leave Management System",
   description: "Professional leave management system for tracking and approving employee leave requests",
   generator: "v0.app",
 }

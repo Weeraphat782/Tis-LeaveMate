@@ -1,4 +1,4 @@
-# 🔄 TIS LeaveMate - Database Reset Instructions
+# 🔄 TIS Leave Management - Database Reset Instructions
 
 ## ⚠️ สำคัญ: การ Reset Database จะลบข้อมูลทั้งหมด!
 

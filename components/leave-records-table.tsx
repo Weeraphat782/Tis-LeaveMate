@@ -483,7 +483,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
                             {record.approvedBy && (
                               <div className="flex flex-col sm:flex-row sm:gap-2">
                                 <span className="text-muted-foreground font-medium sm:min-w-20">
-                                  Processed by:
+                                  Approver:
                                 </span>
                                 <span className="font-medium break-words">
                                   {record.approvedByName || 'Unknown'}

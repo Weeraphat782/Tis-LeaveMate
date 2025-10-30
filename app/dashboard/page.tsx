@@ -201,7 +201,7 @@ export default function DashboardPage() {
                 </svg>
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-bold truncate">TIS LeaveMate</h1>
+                <h1 className="text-lg sm:text-xl font-bold truncate">TIS Leave Management</h1>
                 <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Leave Management System</p>
               </div>
             </div>

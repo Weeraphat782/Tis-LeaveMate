@@ -129,7 +129,7 @@ export default function AuthPage() {
                 <line x1="3" x2="21" y1="10" y2="10" />
               </svg>
             </div>
-            <span className="text-2xl font-bold">TIS LeaveMate</span>
+            <span className="text-2xl font-bold">TIS Leave Management</span>
           </div>
           <CardDescription>Professional leave management system</CardDescription>
         </CardHeader>

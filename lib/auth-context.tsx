@@ -93,6 +93,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
+    // Check if Supabase is configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Supabase not configured')
+      return {
+        error: {
+          message: 'Authentication service not configured. Please contact administrator.',
+          name: 'ConfigurationError'
+        } as AuthError
+      }
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

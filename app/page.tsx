@@ -31,12 +31,27 @@ export default function AuthPage() {
     e.preventDefault()
     setIsLoading(true)
 
+    console.log('Attempting sign in with:', { email, password: '[HIDDEN]' })
+
     const { error } = await signIn(email, password)
 
+    console.log('Sign in result:', { error: error ? error.message : null })
+
     if (error) {
+      let errorMessage = error.message
+
+      // Provide more specific error messages
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials.'
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Please check your email and confirm your account first.'
+      } else if (error.message.includes('Too many requests')) {
+        errorMessage = 'Too many login attempts. Please try again later.'
+      }
+
       toast({
         title: "Sign In Failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       })
     } else {

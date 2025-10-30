@@ -208,6 +208,7 @@ export default function DashboardPage() {
                 email: user.email || '',
                 name: user.user_metadata?.name || user.email?.split('@')[0] || ''
               }} onSuccess={() => {
+                console.log('LeaveRequestForm onSuccess called - refreshing data')
                 setShowForm(false)
                 handleRefresh()
               }} />

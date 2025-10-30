@@ -144,23 +144,67 @@ export const leaveRequestsApi = {
   // Create a new leave request
   async createLeaveRequest(leaveRequest: Omit<LeaveRequest, 'id' | 'submittedAt'>): Promise<{ success: boolean; error?: string }> {
     try {
-      const { error } = await supabase
-        .from('leave_requests')
-        .insert({
-          user_id: leaveRequest.user_id,
-          leave_type: leaveRequest.leaveType,
-          selected_dates: leaveRequest.selectedDates,
-          days: leaveRequest.days,
-          reason: leaveRequest.reason,
-          status: leaveRequest.status,
-        })
+      console.log('createLeaveRequest called with:', {
+        user_id: leaveRequest.user_id,
+        leave_type: leaveRequest.leaveType,
+        selected_dates: leaveRequest.selectedDates,
+        days: leaveRequest.days,
+        reason: leaveRequest.reason,
+        status: leaveRequest.status,
+      })
 
-      if (error) {
-        console.error('Error creating leave request:', error)
-        return { success: false, error: error.message }
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      console.log('Current user:', user?.id, 'Auth error:', authError)
+
+      if (authError || !user) {
+        return { success: false, error: 'User not authenticated' }
       }
 
-      return { success: true }
+      if (user.id !== leaveRequest.user_id) {
+        console.error('User ID mismatch:', user.id, 'vs', leaveRequest.user_id)
+        return { success: false, error: 'User ID mismatch' }
+      }
+
+      console.log('Inserting into database...')
+
+      // Create AbortController for timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        console.log('Request timeout - aborting...')
+        controller.abort()
+      }, 10000) // 10 second timeout
+
+      try {
+        const { data, error } = await supabase
+          .from('leave_requests')
+          .insert({
+            user_id: leaveRequest.user_id,
+            leave_type: leaveRequest.leaveType,
+            selected_dates: leaveRequest.selectedDates,
+            days: leaveRequest.days,
+            reason: leaveRequest.reason,
+            status: leaveRequest.status,
+          })
+          .select()
+
+        clearTimeout(timeoutId)
+
+        if (error) {
+          console.error('Error creating leave request:', error)
+          return { success: false, error: error.message }
+        }
+
+        console.log('Leave request created successfully:', data)
+        return { success: true }
+      } catch (timeoutError: any) {
+        clearTimeout(timeoutId)
+        if (timeoutError.name === 'AbortError') {
+          console.error('Request timed out after 10 seconds')
+          return { success: false, error: 'Request timed out. Please check your internet connection.' }
+        }
+        throw timeoutError
+      }
     } catch (err) {
       console.error('Unexpected error creating leave request:', err)
       return { success: false, error: 'Unexpected error occurred' }

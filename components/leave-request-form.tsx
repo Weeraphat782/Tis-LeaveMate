@@ -32,6 +32,7 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
   const [leaveType, setLeaveType] = useState("")
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [reason, setReason] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const calculateDays = () => {
     return selectedDates.length
@@ -40,13 +41,41 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    console.log('Submit button clicked')
+    console.log('Current state:', { leaveType, selectedDates, reason, isSubmitting })
+
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring...')
+      return
+    }
+
     const days = calculateDays()
     const selectedLeaveType = LEAVE_TYPES.find((lt) => lt.value === leaveType)
+
+    console.log('Calculated values:', { days, selectedLeaveType })
 
     if (!selectedLeaveType) {
       toast({
         title: "Error",
         description: "Please select a leave type",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (selectedDates.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one leave date",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!reason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for your leave request",
         variant: "destructive",
       })
       return
@@ -61,40 +90,59 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       return
     }
 
-    // Save to Supabase
-    const result = await leaveRequestsApi.createLeaveRequest({
-      user_id: currentUser.id,
-      userName: currentUser.name,
-      userEmail: currentUser.email,
-      leaveType: selectedLeaveType.label,
-      selectedDates: selectedDates.map(date => date.toISOString()),
-      days,
-      reason,
-      status: "pending",
-      approvedAt: null,
-      approvedBy: null,
-      approvedByName: null,
-    })
+    setIsSubmitting(true)
 
-    if (!result.success) {
+    try {
+      console.log('Calling leaveRequestsApi.createLeaveRequest...')
+      // Save to Supabase
+      const result = await leaveRequestsApi.createLeaveRequest({
+        user_id: currentUser.id,
+        userName: currentUser.name,
+        userEmail: currentUser.email,
+        leaveType: selectedLeaveType.label,
+        selectedDates: selectedDates.map(date => date.toISOString()),
+        days,
+        reason,
+        status: "pending",
+        approvedAt: null,
+        approvedBy: null,
+        approvedByName: null,
+      })
+
+      console.log('API result:', result)
+
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to submit leave request",
+          variant: "destructive",
+        })
+        return
+      }
+
+      toast({
+        title: "Success",
+        description: "Leave request submitted successfully",
+      })
+
+      console.log('Resetting form...')
+      // Reset form
+      setLeaveType("")
+      setSelectedDates([])
+      setReason("")
+
+      console.log('Calling onSuccess callback...')
+      onSuccess()
+    } catch (error) {
+      console.error('Unexpected error during submit:', error)
       toast({
         title: "Error",
-        description: result.error || "Failed to submit leave request",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       })
-      return
+    } finally {
+      setIsSubmitting(false)
     }
-
-    toast({
-      title: "Success",
-      description: "Leave request submitted successfully",
-    })
-
-    // Reset form
-    setLeaveType("")
-    setSelectedDates([])
-    setReason("")
-    onSuccess()
   }
 
   const days = calculateDays()
@@ -175,8 +223,12 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
           </div>
 
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1">
-              Submit Leave Request
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Leave Request"}
             </Button>
           </div>
         </form>

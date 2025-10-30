@@ -144,6 +144,25 @@ export const leaveRequestsApi = {
   // Create a new leave request
   async createLeaveRequest(leaveRequest: Omit<LeaveRequest, 'id' | 'submittedAt'>): Promise<{ success: boolean; error?: string }> {
     try {
+      // Check if using placeholder values (production configuration issue)
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || supabaseUrl.includes('placeholder') || !supabaseKey || supabaseKey.includes('placeholder')) {
+        console.error('❌ Using placeholder Supabase credentials!')
+        console.error('Please check your environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
+        return { success: false, error: 'Application not properly configured. Please check environment variables.' }
+      }
+
+      console.log('createLeaveRequest called with:', {
+        user_id: leaveRequest.user_id,
+        leave_type: leaveRequest.leaveType,
+        selected_dates: leaveRequest.selectedDates,
+        days: leaveRequest.days,
+        reason: leaveRequest.reason,
+        status: leaveRequest.status,
+      })
+
       const { error } = await supabase
         .from('leave_requests')
         .insert({

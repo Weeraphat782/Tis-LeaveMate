@@ -154,12 +154,12 @@ export const leaveRequestsApi = {
         return { success: false, error: 'Application not properly configured. Please check environment variables.' }
       }
 
-      console.log('createLeaveRequest called with:', {
+      console.log('📝 createLeaveRequest called with:', {
         user_id: leaveRequest.user_id,
         leave_type: leaveRequest.leaveType,
-        selected_dates: leaveRequest.selectedDates,
+        selected_dates: leaveRequest.selectedDates.length + ' dates',
         days: leaveRequest.days,
-        reason: leaveRequest.reason,
+        reason: leaveRequest.reason.substring(0, 50) + (leaveRequest.reason.length > 50 ? '...' : ''),
         status: leaveRequest.status,
       })
 
@@ -175,10 +175,11 @@ export const leaveRequestsApi = {
         })
 
       if (error) {
-        console.error('Error creating leave request:', error)
+        console.error('❌ Database insert error:', error)
         return { success: false, error: error.message }
       }
 
+      console.log('✅ Leave request created successfully')
       return { success: true }
     } catch (err) {
       console.error('Unexpected error creating leave request:', err)

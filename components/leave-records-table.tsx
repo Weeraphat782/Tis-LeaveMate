@@ -58,13 +58,20 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   const [monthFilter, setMonthFilter] = useState<string>("all")
 
   const loadRecords = async () => {
-    if (viewMode === "personal") {
-      const userRecords = await leaveRequestsApi.getUserLeaveRequests(currentUser.id)
-      setRecords(userRecords)
-    } else {
-      const allRecords = await leaveRequestsApi.getAllLeaveRequests()
-      const filteredRecords = allRecords.filter(r => r.user_id !== currentUser.id)
-      setRecords(filteredRecords)
+    console.log(`🔍 Loading ${viewMode} records for user: ${currentUser.id}`)
+    try {
+      if (viewMode === "personal") {
+        const userRecords = await leaveRequestsApi.getUserLeaveRequests(currentUser.id)
+        console.log(`📋 Loaded ${userRecords.length} personal records`)
+        setRecords(userRecords)
+      } else {
+        const allRecords = await leaveRequestsApi.getAllLeaveRequests()
+        const filteredRecords = allRecords.filter(r => r.user_id !== currentUser.id)
+        console.log(`📋 Loaded ${filteredRecords.length} team records (${allRecords.length} total, filtered out own records)`)
+        setRecords(filteredRecords)
+      }
+    } catch (error) {
+      console.error('❌ Error loading records:', error)
     }
   }
 
@@ -114,6 +121,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   }
 
   useEffect(() => {
+    console.log(`📊 LeaveRecordsTable: refreshKey changed to ${refreshKey}, loading records...`)
     loadRecords()
   }, [currentUser.id, viewMode, refreshKey])
 

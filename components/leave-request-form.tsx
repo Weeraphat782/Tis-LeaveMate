@@ -52,6 +52,24 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       return
     }
 
+    if (selectedDates.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one leave date",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!reason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for your leave request",
+        variant: "destructive",
+      })
+      return
+    }
+
     if (days > selectedLeaveType.maxDays) {
       toast({
         title: "Error",
@@ -60,6 +78,17 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       })
       return
     }
+
+    console.log('Submitting leave request with data:', {
+      user_id: currentUser.id,
+      userName: currentUser.name,
+      userEmail: currentUser.email,
+      leaveType: selectedLeaveType.label,
+      selectedDates: selectedDates.map(date => date.toISOString()),
+      days,
+      reason,
+      status: "pending",
+    })
 
     // Save to Supabase
     const result = await leaveRequestsApi.createLeaveRequest({
@@ -77,6 +106,7 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
     })
 
     if (!result.success) {
+      console.error('❌ Submit failed:', result.error)
       toast({
         title: "Error",
         description: result.error || "Failed to submit leave request",
@@ -85,6 +115,7 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       return
     }
 
+    console.log('✅ Submit successful, calling onSuccess...')
     toast({
       title: "Success",
       description: "Leave request submitted successfully",
@@ -94,6 +125,8 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
     setLeaveType("")
     setSelectedDates([])
     setReason("")
+
+    console.log('🔄 Calling onSuccess callback...')
     onSuccess()
   }
 

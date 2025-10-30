@@ -26,9 +26,24 @@ export default function DashboardPage() {
   // Reset states when user changes (login/logout)
   useEffect(() => {
     if (user) {
-      console.log('User logged in, resetting dashboard state for:', user.id)
+      console.log('Dashboard: User logged in, resetting dashboard state for:', user.id)
       setShowForm(false)
-      setRefreshKey(0) // Reset refresh key to trigger data reload
+      setRefreshKey(prev => prev + 1) // Increment to trigger data reload
+      console.log('Dashboard: Refresh key incremented to trigger data reload')
+    }
+  }, [user])
+
+  // Detect if user ID changed unexpectedly (handles session conflicts)
+  useEffect(() => {
+    if (user) {
+      const storedUserId = localStorage.getItem('last_user_id')
+      if (storedUserId && storedUserId !== user.id) {
+        console.log('Dashboard: User ID changed from', storedUserId, 'to', user.id, '- forcing refresh')
+        localStorage.setItem('last_user_id', user.id)
+        setRefreshKey(prev => prev + 1)
+      } else if (!storedUserId) {
+        localStorage.setItem('last_user_id', user.id)
+      }
     }
   }, [user])
 
@@ -153,42 +168,47 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-6 h-6 text-primary-foreground"
+        <div className="container mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground"
+                >
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                  <line x1="16" x2="16" y1="2" y2="6" />
+                  <line x1="8" x2="8" y1="2" y2="6" />
+                  <line x1="3" x2="21" y1="10" y2="10" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold truncate">TIS LeaveMate</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Leave Management System</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-medium truncate max-w-32">{user.user_metadata?.name || user.email?.split('@')[0]}</p>
+                <p className="text-xs text-muted-foreground truncate max-w-40">{user.email}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onMouseDown={handleLogout}
+                disabled={isLoggingOut}
+                className="text-xs sm:text-sm px-2 sm:px-3"
               >
-                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                <line x1="16" x2="16" y1="2" y2="6" />
-                <line x1="8" x2="8" y1="2" y2="6" />
-                <line x1="3" x2="21" y1="10" y2="10" />
-              </svg>
+                <span className="hidden sm:inline">{isLoggingOut ? "Logging out..." : "Logout"}</span>
+                <span className="sm:hidden">🚪</span>
+              </Button>
             </div>
-            <div>
-              <h1 className="text-xl font-bold">TIS LeaveMate</h1>
-              <p className="text-sm text-muted-foreground">Leave Management System</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium">{user.user_metadata?.name || user.email?.split('@')[0]}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
-            <Button
-              variant="outline"
-              onMouseDown={handleLogout}
-              disabled={isLoggingOut}
-            >
-              {isLoggingOut ? "Logging out..." : "Logout"}
-            </Button>
           </div>
         </div>
       </header>
@@ -199,13 +219,17 @@ export default function DashboardPage() {
           <SupabaseSetupWarning />
         </div>
 
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
             <div>
-              <h2 className="text-3xl font-bold text-balance">Leave Management</h2>
-              <p className="text-muted-foreground mt-1">Track and manage your leave requests</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-balance">Leave Management</h2>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">Track and manage your leave requests</p>
             </div>
-            <Button onClick={() => setShowForm(!showForm)} size="lg">
+            <Button
+              onClick={() => setShowForm(!showForm)}
+              size="lg"
+              className="w-full sm:w-auto"
+            >
               {showForm ? "Cancel" : "New Leave Request"}
             </Button>
           </div>
@@ -234,9 +258,19 @@ export default function DashboardPage() {
         </div>
 
         <Tabs defaultValue="my-leaves" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="my-leaves">My Leave Records</TabsTrigger>
-            <TabsTrigger value="team-leaves">Team Leave Records</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+            <TabsTrigger
+              value="my-leaves"
+              className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              My Leave Records
+            </TabsTrigger>
+            <TabsTrigger
+              value="team-leaves"
+              className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              Team Leave Records
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="my-leaves" className="mt-6">
             <LeaveRecordsTable

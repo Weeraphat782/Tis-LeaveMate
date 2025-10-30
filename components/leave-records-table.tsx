@@ -355,53 +355,58 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
         </CardHeader>
         <CardContent>
           {viewMode === "team" && (
-            <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
-              <div className="flex-1">
-                <Label htmlFor="account-filter" className="text-sm font-medium">Filter by Account</Label>
-                <Select value={accountFilter} onValueChange={setAccountFilter}>
-                  <SelectTrigger id="account-filter" className="mt-1">
-                    <SelectValue placeholder="All Accounts" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Accounts</SelectItem>
-                    {getUniqueUsers().map(user => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name} ({user.email})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="month-filter" className="text-sm font-medium">Filter by Month</Label>
-                <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger id="month-filter" className="mt-1">
-                    <SelectValue placeholder="All Months" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Months</SelectItem>
-                    <SelectItem value="1">January</SelectItem>
-                    <SelectItem value="2">February</SelectItem>
-                    <SelectItem value="3">March</SelectItem>
-                    <SelectItem value="4">April</SelectItem>
-                    <SelectItem value="5">May</SelectItem>
-                    <SelectItem value="6">June</SelectItem>
-                    <SelectItem value="7">July</SelectItem>
-                    <SelectItem value="8">August</SelectItem>
-                    <SelectItem value="9">September</SelectItem>
-                    <SelectItem value="10">October</SelectItem>
-                    <SelectItem value="11">November</SelectItem>
-                    <SelectItem value="12">December</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {(accountFilter !== "all" || monthFilter !== "all") && (
-                <div className="flex items-end">
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
-                    Clear Filters
-                  </Button>
+            <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-muted/50 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                <div>
+                  <Label htmlFor="account-filter" className="text-sm font-medium">Filter by Account</Label>
+                  <Select value={accountFilter} onValueChange={setAccountFilter}>
+                    <SelectTrigger id="account-filter" className="mt-1 h-9 sm:h-10">
+                      <SelectValue placeholder="All Accounts" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Accounts</SelectItem>
+                      {getUniqueUsers().map(user => (
+                        <SelectItem key={user.id} value={user.id}>
+                          <div className="truncate">
+                            <span className="font-medium">{user.name}</span>
+                            <span className="text-muted-foreground ml-1">({user.email})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                <div>
+                  <Label htmlFor="month-filter" className="text-sm font-medium">Filter by Month</Label>
+                  <Select value={monthFilter} onValueChange={setMonthFilter}>
+                    <SelectTrigger id="month-filter" className="mt-1 h-9 sm:h-10">
+                      <SelectValue placeholder="All Months" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Months</SelectItem>
+                      <SelectItem value="1">January</SelectItem>
+                      <SelectItem value="2">February</SelectItem>
+                      <SelectItem value="3">March</SelectItem>
+                      <SelectItem value="4">April</SelectItem>
+                      <SelectItem value="5">May</SelectItem>
+                      <SelectItem value="6">June</SelectItem>
+                      <SelectItem value="7">July</SelectItem>
+                      <SelectItem value="8">August</SelectItem>
+                      <SelectItem value="9">September</SelectItem>
+                      <SelectItem value="10">October</SelectItem>
+                      <SelectItem value="11">November</SelectItem>
+                      <SelectItem value="12">December</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(accountFilter !== "all" || monthFilter !== "all") && (
+                  <div className="flex items-end sm:col-span-2 lg:col-span-1">
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="w-full sm:w-auto">
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -414,30 +419,30 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredRecords.map((record) => (
-                <div key={record.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h3 className="font-semibold">{record.leaveType}</h3>
+                <div key={record.id} className="border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex-1 space-y-2 sm:space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                        <h3 className="font-semibold text-sm sm:text-base">{record.leaveType}</h3>
                         {getStatusBadge(record.status)}
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-xs sm:text-sm text-muted-foreground">
                           {record.days} day{record.days !== 1 ? "s" : ""}
                         </span>
                       </div>
 
                       {viewMode === "team" && (
-                        <div className="text-sm">
+                        <div className="text-xs sm:text-sm">
                           <span className="font-medium">{record.userName}</span>
-                          <span className="text-muted-foreground"> ({record.userEmail})</span>
+                          <span className="text-muted-foreground ml-1">({record.userEmail})</span>
                         </div>
                       )}
 
-                      <div className="grid gap-2 text-sm">
-                        <div className="flex gap-2">
-                          <span className="text-muted-foreground min-w-24">Leave Dates:</span>
-                          <span className="font-medium">
+                      <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
+                        <div className="flex flex-col sm:flex-row sm:gap-2">
+                          <span className="text-muted-foreground font-medium sm:min-w-20">Leave Dates:</span>
+                          <span className="font-medium break-words">
                             {record.selectedDates
                               .map(date => new Date(date).toLocaleDateString("en-US", {
                                 month: "short",
@@ -446,29 +451,29 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
                               .join(", ")}
                           </span>
                         </div>
-                        <div className="flex gap-2">
-                          <span className="text-muted-foreground min-w-24">Reason:</span>
-                          <span>{record.reason}</span>
+                        <div className="flex flex-col sm:flex-row sm:gap-2">
+                          <span className="text-muted-foreground font-medium sm:min-w-20">Reason:</span>
+                          <span className="break-words">{record.reason}</span>
                         </div>
-                        <div className="flex gap-2">
-                          <span className="text-muted-foreground min-w-24">Submitted:</span>
+                        <div className="flex flex-col sm:flex-row sm:gap-2">
+                          <span className="text-muted-foreground font-medium sm:min-w-20">Submitted:</span>
                           <span>{formatDate(record.submittedAt)}</span>
                         </div>
                         {record.approvedAt && (
                           <>
-                            <div className="flex gap-2">
-                              <span className="text-muted-foreground min-w-24">
+                            <div className="flex flex-col sm:flex-row sm:gap-2">
+                              <span className="text-muted-foreground font-medium sm:min-w-20">
                                 {record.status === "approved" ? "Approved" : "Rejected"} Date:
                               </span>
                               <span>{formatDate(record.approvedAt)}</span>
                             </div>
                             {record.approvedBy && (
-                              <div className="flex gap-2">
-                                <span className="text-muted-foreground min-w-24">
+                              <div className="flex flex-col sm:flex-row sm:gap-2">
+                                <span className="text-muted-foreground font-medium sm:min-w-20">
                                   Processed by:
                                 </span>
-                                <span className="font-medium">
-                                  {record.approvedByName || 'Unknown'} ({record.approvedBy})
+                                <span className="font-medium break-words">
+                                  {record.approvedByName || 'Unknown'}
                                 </span>
                               </div>
                             )}
@@ -477,19 +482,36 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-row sm:flex-col gap-2 sm:gap-2 justify-end sm:justify-start">
                       {viewMode === "personal" && record.status === "pending" && (
                         <>
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(record)}>
-                            Edit
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(record)}
+                            className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-3"
+                          >
+                            <span className="hidden sm:inline">Edit</span>
+                            <span className="sm:hidden">✏️</span>
                           </Button>
-                          <Button variant="destructive" size="sm" onClick={() => handleDelete(record.id)}>
-                            Delete
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(record.id)}
+                            className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-3"
+                          >
+                            <span className="hidden sm:inline">Delete</span>
+                            <span className="sm:hidden">🗑️</span>
                           </Button>
                         </>
                       )}
                       {viewMode === "team" && record.status === "pending" && (
-                        <Button variant="default" size="sm" onClick={() => handleApprove(record)}>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleApprove(record)}
+                          className="w-full sm:w-auto text-xs sm:text-sm px-3 sm:px-4"
+                        >
                           Review
                         </Button>
                       )}

@@ -150,13 +150,13 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>New Leave Request</CardTitle>
-        <CardDescription>Submit a new leave request for approval</CardDescription>
+      <CardHeader className="pb-4 sm:pb-6">
+        <CardTitle className="text-lg sm:text-xl">New Leave Request</CardTitle>
+        <CardDescription className="text-sm">Submit a new leave request for approval</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
+      <CardContent className="pt-0">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="leaveType">Leave Type *</Label>
               <Select value={leaveType} onValueChange={setLeaveType} required>
@@ -183,13 +183,13 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
           </div>
 
           {days > 0 && (
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium">
+            <div className="p-3 sm:p-4 bg-muted rounded-lg">
+              <p className="text-xs sm:text-sm font-medium">
                 Leave Duration: {days} day{days !== 1 ? "s" : ""}
                 {selectedLeaveType && (
                   <span
                     className={
-                      days > selectedLeaveType.maxDays ? "text-destructive ml-2" : "text-muted-foreground ml-2"
+                      days > selectedLeaveType.maxDays ? "text-destructive ml-1 sm:ml-2" : "text-muted-foreground ml-1 sm:ml-2"
                     }
                   >
                     ({days > selectedLeaveType.maxDays ? "Exceeds" : "Within"} {selectedLeaveType.label} limit of{" "}
@@ -197,7 +197,7 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
                   </span>
                 )}
               </p>
-              <div className="mt-2 text-xs text-muted-foreground">
+              <div className="mt-2 text-xs text-muted-foreground break-words">
                 Selected dates: {selectedDates
                   .sort((a, b) => a.getTime() - b.getTime())
                   .map(date => date.toLocaleDateString("en-US", {
@@ -217,13 +217,14 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
               placeholder="Please provide a reason for your leave request..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              rows={4}
+              rows={3}
+              className="resize-none"
               required
             />
           </div>
 
-          <div className="flex gap-3">
-            <Button type="submit" className="flex-1">
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" className="flex-1 sm:flex-none sm:w-auto">
               Submit Leave Request
             </Button>
           </div>

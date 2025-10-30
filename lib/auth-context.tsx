@@ -32,6 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   const ensureUserProfile = async (user: any) => {
     try {
@@ -79,8 +80,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user ? 'USER_LOGGED_IN' : 'USER_LOGGED_OUT')
+      console.log('Previous user ID:', currentUserId, 'New user ID:', session?.user?.id)
+
+      // Detect user change and force page refresh if different user
+      if (session?.user?.id !== currentUserId && currentUserId !== null) {
+        console.log('🔄 USER CHANGE DETECTED - Force refreshing page for new user session')
+
+        // Clear all cached data before refresh
+        try {
+          localStorage.clear()
+          sessionStorage.clear()
+          // Clear any Supabase cached data
+          if (typeof window !== 'undefined') {
+            const keys = Object.keys(localStorage).filter(key => key.startsWith('supabase'))
+            keys.forEach(key => localStorage.removeItem(key))
+          }
+        } catch (error) {
+          console.error('Error clearing storage:', error)
+        }
+
+        // Force page refresh to clear all cached state
+        window.location.reload()
+        return
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
+      setCurrentUserId(session?.user?.id ?? null)
       setLoading(false)
 
       // Ensure profile exists when user signs in

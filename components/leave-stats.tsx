@@ -89,28 +89,30 @@ export function LeaveStats({ currentUser, refreshKey }: LeaveStatsProps) {
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
       {statCards.map((stat) => (
-        <Card key={stat.title}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+        <Card key={stat.title} className="p-3 sm:p-4">
+          <CardHeader className="pb-2 p-0">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
+              {stat.title}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className={`text-3xl font-bold ${stat.color}`}>{stat.used}</span>
+          <CardContent className="p-0 pt-2">
+            <div className="flex items-baseline gap-1 sm:gap-2">
+              <span className={`text-2xl sm:text-3xl font-bold ${stat.color}`}>{stat.used}</span>
               {stat.total !== null && (
-                <span className="text-muted-foreground">
-                  / {stat.total} days
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  / {stat.total}
                   {stat.used > stat.total && (
-                    <span className="text-destructive ml-1">
-                      ({stat.used - stat.total} over quota)
+                    <span className="text-destructive ml-1 block sm:inline">
+                      (+{stat.used - stat.total})
                     </span>
                   )}
                 </span>
               )}
             </div>
             {stat.total !== null && (
-              <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+              <div className="mt-2 h-1.5 sm:h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className={`h-full ${stat.color.replace("text-", "bg-")} transition-all`}
                   style={{ width: `${Math.min((stat.used / stat.total) * 100, 100)}%` }}
@@ -119,7 +121,7 @@ export function LeaveStats({ currentUser, refreshKey }: LeaveStatsProps) {
             )}
             {stat.total !== null && stat.used > stat.total && (
               <div className="mt-1 text-xs text-destructive">
-                ⚠️ Over leave quota
+                ⚠️ Over quota
               </div>
             )}
           </CardContent>

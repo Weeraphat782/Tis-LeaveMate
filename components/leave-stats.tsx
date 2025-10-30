@@ -26,14 +26,20 @@ export function LeaveStats({ currentUser, refreshKey }: LeaveStatsProps) {
   const [prevUserId, setPrevUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    console.log('Loading stats for user:', currentUser.id, 'refreshKey:', refreshKey)
+    console.log('📈 LeaveStats: Loading stats for user:', currentUser.id, 'refreshKey:', refreshKey)
     const loadStats = async () => {
       const stats = await leaveStatsApi.getUserLeaveStats(currentUser.id)
+      console.log('📊 LeaveStats: Loaded stats:', stats)
       setStats(stats)
     }
 
     loadStats()
   }, [currentUser.id, refreshKey])
+
+  // Debug: Log when stats change
+  useEffect(() => {
+    console.log('📈 LeaveStats: Stats updated:', stats)
+  }, [stats])
 
   // Detect user change (login/logout) and force reload
   useEffect(() => {

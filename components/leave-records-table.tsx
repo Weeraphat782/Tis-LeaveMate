@@ -117,9 +117,22 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   }
 
   useEffect(() => {
-    console.log('Loading records for user:', currentUser.id, 'viewMode:', viewMode)
+    console.log('🎯 LeaveRecordsTable: Loading records for user:', currentUser.id, 'viewMode:', viewMode, 'refreshKey:', refreshKey)
     loadRecords()
   }, [currentUser.id, viewMode, refreshKey])
+
+  // Debug: Log when records change
+  useEffect(() => {
+    console.log('📊 LeaveRecordsTable: Records updated, count:', records.length)
+    records.forEach((record, index) => {
+      console.log(`  Record ${index + 1}:`, {
+        id: record.id,
+        leaveType: record.leaveType,
+        status: record.status,
+        submittedAt: record.submittedAt
+      })
+    })
+  }, [records])
 
   // Reload records when window regains focus (for multi-user updates)
   useEffect(() => {

@@ -18,34 +18,46 @@ export default function DashboardPage() {
   const [showForm, setShowForm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [isPageRefreshed, setIsPageRefreshed] = useState(false)
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1)
   }
 
-  // Reset states when user changes (login/logout)
+  // Detect page refresh vs navigation
   useEffect(() => {
-    if (user) {
-      console.log('Dashboard: User logged in, resetting dashboard state for:', user.id)
-      setShowForm(false)
-      setRefreshKey(prev => prev + 1) // Increment to trigger data reload
-      console.log('Dashboard: Refresh key incremented to trigger data reload')
-    }
-  }, [user])
+    const navigationTimestamp = sessionStorage.getItem('dashboard_navigation_timestamp')
+    const currentTime = Date.now()
 
-  // Detect if user ID changed unexpectedly (handles session conflicts)
+    if (navigationTimestamp) {
+      const timeDiff = currentTime - parseInt(navigationTimestamp)
+      // If navigated more than 2 seconds ago, consider it a refresh
+      if (timeDiff > 2000) {
+        setIsPageRefreshed(true)
+        console.log('🔄 Dashboard: Page refresh detected')
+      } else {
+        console.log('🧭 Dashboard: Normal navigation')
+      }
+    } else {
+      console.log('📝 Dashboard: First load')
+    }
+
+    // Set new navigation timestamp
+    sessionStorage.setItem('dashboard_navigation_timestamp', currentTime.toString())
+  }, [])
+
+  // Handle data loading
   useEffect(() => {
     if (user) {
-      const storedUserId = localStorage.getItem('last_user_id')
-      if (storedUserId && storedUserId !== user.id) {
-        console.log('Dashboard: User ID changed from', storedUserId, 'to', user.id, '- forcing refresh')
-        localStorage.setItem('last_user_id', user.id)
-        setRefreshKey(prev => prev + 1)
-      } else if (!storedUserId) {
-        localStorage.setItem('last_user_id', user.id)
-      }
+      console.log('📊 Dashboard: User loaded:', user.id, 'isPageRefreshed:', isPageRefreshed)
+
+      // Trigger data reload
+      setRefreshKey(prev => prev + 1)
+      localStorage.setItem('last_user_id', user.id)
+
+      console.log('🔄 Dashboard: Triggered data reload for user:', user.id)
     }
-  }, [user])
+  }, [user, isPageRefreshed])
 
   useEffect(() => {
     if (!user && !loading) {

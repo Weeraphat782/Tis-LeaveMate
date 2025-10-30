@@ -16,6 +16,21 @@ console.log('🚀 Environment check:', {
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase environment variables')
   console.error('Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY')
+} else {
+  console.log('✅ Supabase configured successfully')
+  console.log('🔗 Testing database connection...')
+
+  // Test basic connection
+  supabase.from('profiles').select('count', { count: 'exact', head: true })
+    .then(result => {
+      console.log('🗄️ Database connection test:', result.error ? 'FAILED' : 'SUCCESS')
+      if (result.error) {
+        console.error('Database error:', result.error)
+      }
+    })
+    .catch(err => {
+      console.error('Database connection error:', err)
+    })
 }
 
 export const supabase = createClient(

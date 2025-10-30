@@ -67,8 +67,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
+    console.log('🔐 Initializing auth in', process.env.NODE_ENV)
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('Initial session check:', {
+        hasSession: !!session,
+        hasError: !!error,
+        error: error?.message,
+        userId: session?.user?.id
+      })
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
@@ -93,6 +100,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
+    console.log('🔑 Attempting sign in for:', email)
     // Check if Supabase is configured
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -107,9 +115,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
+    console.log('📡 Calling Supabase signInWithPassword...')
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
+    })
+
+    console.log('Sign in result:', {
+      success: !error,
+      hasUser: !!data.user,
+      hasSession: !!data.session,
+      error: error?.message
     })
 
     if (data.user && !error) {

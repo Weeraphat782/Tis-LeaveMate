@@ -60,6 +60,9 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   // Track previous user ID to detect login/logout
   const [prevUserId, setPrevUserId] = useState<string | null>(null)
 
+  // Permission state for approve/reject
+  const [canApprove, setCanApprove] = useState<boolean>(false)
+
   const loadRecords = async () => {
     if (viewMode === "personal") {
       const userRecords = await leaveRequestsApi.getUserLeaveRequests(currentUser.id)
@@ -69,6 +72,13 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
       const filteredRecords = allRecords.filter(r => r.user_id !== currentUser.id)
       setRecords(filteredRecords)
     }
+  }
+
+  const checkApprovePermission = async () => {
+    console.log('🔍 Checking approve permission for:', currentUser.email)
+    const canApproveResult = await leaveRequestsApi.checkUserCanApprove(currentUser.email)
+    console.log('✅ Approve permission result:', canApproveResult)
+    setCanApprove(canApproveResult)
   }
 
   // Apply filters for team view
@@ -119,6 +129,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
   useEffect(() => {
     console.log('🎯 LeaveRecordsTable: Loading records for user:', currentUser.id, 'viewMode:', viewMode, 'refreshKey:', refreshKey)
     loadRecords()
+    checkApprovePermission()
   }, [currentUser.id, viewMode, refreshKey])
 
   // Debug: Log when records change
@@ -222,7 +233,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
       const result = await leaveRequestsApi.approveLeaveRequest(
         selectedRecord.id,
         approved,
-        currentUser.id,
+        currentUser.email,
         currentUser.name
       )
 
@@ -518,7 +529,7 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
                           </Button>
                         </>
                       )}
-                      {viewMode === "team" && record.status === "pending" && (
+                      {viewMode === "team" && record.status === "pending" && canApprove && (
                         <Button
                           variant="default"
                           size="sm"

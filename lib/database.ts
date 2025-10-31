@@ -367,24 +367,72 @@ export const leaveRequestsApi = {
     }
   },
 
+  // Check if user can approve/reject leave requests
+  async checkUserCanApprove(userEmail: string): Promise<boolean> {
+    try {
+      console.log('🔍 Checking if user can approve:', userEmail)
+
+      // Query approver_emails table to check if email is authorized
+      const { data, error } = await supabase
+        .from('approver_emails')
+        .select('email')
+        .eq('email', userEmail)
+        .eq('can_approve', true)
+        .single()
+
+      console.log('📋 Approver check result:', { data, error })
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('❌ Error checking approver permission:', error)
+        return false
+      }
+
+      const canApprove = !!data
+      console.log('✅ User can approve:', canApprove)
+      return canApprove
+    } catch (error) {
+      console.error('💥 Error in checkUserCanApprove:', error)
+      return false
+    }
+  },
+
   // Approve or reject a leave request
   async approveLeaveRequest(id: string, approved: boolean, approvedBy: string, approvedByName: string): Promise<{ success: boolean; error?: string }> {
-    const { error } = await supabase
-      .from('leave_requests')
-      .update({
-        status: approved ? 'approved' : 'rejected',
-        approved_at: new Date().toISOString(),
-        approved_by: approvedBy,
-        approved_by_name: approvedByName,
-      })
-      .eq('id', id)
+    console.log('🚀 Starting approveLeaveRequest:', { id, approved, approvedBy, approvedByName })
 
-    if (error) {
-      console.error('Error approving leave request:', error)
-      return { success: false, error: error.message }
+    try {
+      // First check if user has approval permission
+      const canApprove = await this.checkUserCanApprove(approvedBy)
+      console.log('🔐 Permission check result:', canApprove)
+
+      if (!canApprove) {
+        console.error('❌ User does not have approval permission:', approvedBy)
+        return { success: false, error: 'You do not have permission to approve or reject leave requests.' }
+      }
+
+      console.log('✅ Permission verified, proceeding with approval...')
+
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({
+          status: approved ? 'approved' : 'rejected',
+          approved_at: new Date().toISOString(),
+          approved_by: approvedBy,
+          approved_by_name: approvedByName,
+        })
+        .eq('id', id)
+
+      if (error) {
+        console.error('❌ Error updating leave request:', error)
+        return { success: false, error: error.message }
+      }
+
+      console.log('✅ Leave request updated successfully')
+      return { success: true }
+    } catch (err) {
+      console.error('💥 Unexpected error in approveLeaveRequest:', err)
+      return { success: false, error: `Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}` }
     }
-
-    return { success: true }
   },
 }
 

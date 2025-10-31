@@ -174,8 +174,8 @@ export default function DashboardPage() {
     )
   }
 
-  // Show loading while auth is initializing
-  if (!isInitialized || loading) {
+  // Show loading while auth is initializing or no user yet
+  if (!isInitialized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

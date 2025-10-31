@@ -22,11 +22,11 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (isInitialized && user && !loading) {
+    if (user) {
       console.log('AuthPage: User authenticated, redirecting to dashboard')
       router.push("/dashboard")
     }
-  }, [user, loading, isInitialized, router])
+  }, [user, router])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()

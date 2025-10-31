@@ -78,12 +78,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('🚀 Auth initialization - checking existing session')
 
       try {
-        // Check if user explicitly logged out (don't restore session)
+        // First, check if user explicitly logged out (fast localStorage check)
         const wasLoggedOut = localStorage.getItem('auth_logged_out') === 'true'
 
         if (wasLoggedOut) {
           console.log('🚪 User was logged out, not restoring session')
-          // Clear the logout flag and don't restore session
           localStorage.removeItem('auth_logged_out')
           setSession(null)
           setUser(null)
@@ -94,22 +93,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return
         }
 
-        // Check if we have a valid session
+        // Set initialized immediately for faster UI response
+        setIsInitialized(true)
+        setLoading(false)
+
+        // Check session asynchronously (don't block UI)
         const { data: { session }, error } = await supabase.auth.getSession()
 
         if (!mounted) return
 
         if (session?.user && !error) {
           console.log('🔑 Found existing valid session for user:', session.user.id)
-          // Restore the session
-          await ensureUserProfile(session.user)
           setSession(session)
           setUser(session.user)
           setCurrentUserId(session.user.id)
           setIsLoggedOut(false)
+
+          // Ensure profile exists in background (don't block UI)
+          ensureUserProfile(session.user).catch(err =>
+            console.error('Background profile creation failed:', err)
+          )
         } else {
           console.log('📭 No valid session found or session error:', error?.message)
-          // No valid session, clear everything
           setSession(null)
           setUser(null)
           setCurrentUserId(null)
@@ -121,10 +126,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(null)
         setCurrentUserId(null)
         setIsLoggedOut(true)
+        setLoading(false)
+        setIsInitialized(true)
       }
-
-      setLoading(false)
-      setIsInitialized(true)
     }
 
     // Initialize auth state
@@ -159,11 +163,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Handle sign in - set session but don't persist
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('👤 User signed in:', session.user.id)
-        await ensureUserProfile(session.user)
         setSession(session)
         setUser(session.user)
         setCurrentUserId(session.user.id)
         setIsLoggedOut(false)
+
+        // Ensure profile exists in background (don't block auth state change)
+        ensureUserProfile(session.user).catch(err =>
+          console.error('Background profile creation failed:', err)
+        )
       }
 
       // Handle token refresh
@@ -187,8 +195,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
 
     if (data.user && !error) {
-      // Ensure profile exists for this user
-      await ensureUserProfile(data.user)
+      // Ensure profile exists in background (don't block sign in)
+      ensureUserProfile(data.user).catch(err =>
+        console.error('Background profile creation failed:', err)
+      )
     }
 
     return { error }
@@ -201,8 +211,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
 
     if (data.user && !error) {
-      // Ensure profile exists for this user
-      await ensureUserProfile(data.user)
+      // Ensure profile exists in background (don't block sign up)
+      ensureUserProfile(data.user).catch(err =>
+        console.error('Background profile creation failed:', err)
+      )
     }
 
     return { error }

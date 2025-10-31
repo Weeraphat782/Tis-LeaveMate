@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, signOut, loading } = useAuth()
+  const { user, signOut, loading, isInitialized } = useAuth()
   const { toast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -60,28 +60,30 @@ export default function DashboardPage() {
   }, [user, isPageRefreshed])
 
   useEffect(() => {
-    if (!user && !loading) {
-      console.log('Dashboard: No user, redirecting to login')
+    if (isInitialized && !user && !loading) {
+      console.log('Dashboard: No user after initialization, redirecting to login')
       router.push("/")
     }
-  }, [user, loading, router])
+  }, [user, loading, isInitialized, router])
 
   // Additional check after logout
   useEffect(() => {
     const checkAuth = () => {
-      if (!user && !loading) {
-        console.log('Dashboard: Auth check failed, redirecting')
+      if (isInitialized && !user && !loading) {
+        console.log('Dashboard: Auth check failed after initialization, redirecting')
         router.replace("/")
       }
     }
 
-    // Check immediately
-    checkAuth()
+    // Check immediately if initialized
+    if (isInitialized) {
+      checkAuth()
+    }
 
     // Check again after a short delay to catch any race conditions
     const timeout = setTimeout(checkAuth, 100)
     return () => clearTimeout(timeout)
-  }, [user, loading, router])
+  }, [user, loading, isInitialized, router])
 
   const performLogout = useCallback(async () => {
     if (isLoggingOut) return
@@ -172,6 +174,18 @@ export default function DashboardPage() {
     )
   }
 
+  // Show loading while auth is initializing
+  if (!isInitialized || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!user) {
     return null
   }
@@ -181,7 +195,8 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            {/* Logo and App Title */}
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
                 <svg
@@ -205,8 +220,10 @@ export default function DashboardPage() {
                 <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Leave Management System</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="text-right hidden sm:block">
+
+            {/* User Info and Logout - Desktop */}
+            <div className="hidden md:flex items-center gap-4">
+              <div className="text-right">
                 <p className="text-sm font-medium truncate max-w-32">{user.user_metadata?.name || user.email?.split('@')[0]}</p>
                 <p className="text-xs text-muted-foreground truncate max-w-40">{user.email}</p>
               </div>
@@ -215,10 +232,26 @@ export default function DashboardPage() {
                 size="sm"
                 onMouseDown={handleLogout}
                 disabled={isLoggingOut}
-                className="text-xs sm:text-sm px-2 sm:px-3"
+                className="text-sm px-3"
               >
-                <span className="hidden sm:inline">{isLoggingOut ? "Logging out..." : "Logout"}</span>
-                <span className="sm:hidden">🚪</span>
+                {isLoggingOut ? "Logging out..." : "Logout"}
+              </Button>
+            </div>
+
+            {/* User Info and Logout - Mobile/Tablet */}
+            <div className="flex md:hidden items-center justify-between">
+              <div className="text-left flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user.user_metadata?.name || user.email?.split('@')[0]}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onMouseDown={handleLogout}
+                disabled={isLoggingOut}
+                className="text-xs px-2 ml-2 flex-shrink-0"
+              >
+                🚪
               </Button>
             </div>
           </div>

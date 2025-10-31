@@ -27,7 +27,7 @@ export const supabase = createClient(
   {
     auth: {
       autoRefreshToken: true,
-      persistSession: false, // Disable automatic session persistence
+      persistSession: true, // Enable session persistence but manage logout manually
       detectSessionInUrl: true
     }
   }

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 
 export default function AuthPage() {
   const router = useRouter()
-  const { user, signIn, signUp, loading } = useAuth()
+  const { user, signIn, signUp, loading, isInitialized } = useAuth()
   const { toast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -22,10 +22,11 @@ export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    if (user && !loading) {
+    if (isInitialized && user && !loading) {
+      console.log('AuthPage: User authenticated, redirecting to dashboard')
       router.push("/dashboard")
     }
-  }, [user, loading, router])
+  }, [user, loading, isInitialized, router])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,7 +97,7 @@ export default function AuthPage() {
     setIsLoading(false)
   }
 
-  if (loading) {
+  if (!isInitialized || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

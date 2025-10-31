@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  isInitialized: boolean
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<{ error: AuthError | null }>
@@ -72,14 +73,62 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true
 
-    // Since persistSession is disabled, we don't restore session automatically
-    // Only listen for auth changes from user actions
-    console.log('🚀 Auth initialization - no session persistence')
-    setSession(null)
-    setUser(null)
-    setCurrentUserId(null)
-    setLoading(false)
-    setIsInitialized(true)
+    // Check for existing valid session on page load
+    const initializeAuth = async () => {
+      console.log('🚀 Auth initialization - checking existing session')
+
+      try {
+        // Check if user explicitly logged out (don't restore session)
+        const wasLoggedOut = localStorage.getItem('auth_logged_out') === 'true'
+
+        if (wasLoggedOut) {
+          console.log('🚪 User was logged out, not restoring session')
+          // Clear the logout flag and don't restore session
+          localStorage.removeItem('auth_logged_out')
+          setSession(null)
+          setUser(null)
+          setCurrentUserId(null)
+          setIsLoggedOut(true)
+          setLoading(false)
+          setIsInitialized(true)
+          return
+        }
+
+        // Check if we have a valid session
+        const { data: { session }, error } = await supabase.auth.getSession()
+
+        if (!mounted) return
+
+        if (session?.user && !error) {
+          console.log('🔑 Found existing valid session for user:', session.user.id)
+          // Restore the session
+          await ensureUserProfile(session.user)
+          setSession(session)
+          setUser(session.user)
+          setCurrentUserId(session.user.id)
+          setIsLoggedOut(false)
+        } else {
+          console.log('📭 No valid session found or session error:', error?.message)
+          // No valid session, clear everything
+          setSession(null)
+          setUser(null)
+          setCurrentUserId(null)
+          setIsLoggedOut(true)
+        }
+      } catch (error) {
+        console.error('❌ Error during auth initialization:', error)
+        setSession(null)
+        setUser(null)
+        setCurrentUserId(null)
+        setIsLoggedOut(true)
+      }
+
+      setLoading(false)
+      setIsInitialized(true)
+    }
+
+    // Initialize auth state
+    initializeAuth()
 
     // Listen for auth changes
     const {
@@ -224,6 +273,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     session,
     loading,
+    isInitialized,
     signIn,
     signUp,
     signOut,

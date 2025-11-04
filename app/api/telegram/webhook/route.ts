@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase-server'
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
-const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
 interface TelegramMessage {
   message_id: number
@@ -33,6 +33,12 @@ interface ParsedMessage {
 }
 
 async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
+  // Check if API key exists
+  if (!process.env.GOOGLE_AI_API_KEY) {
+    console.error('GOOGLE_AI_API_KEY not found')
+    return { intent: 'unknown', confidence: 0 }
+  }
+
   const prompt = `
   คุณเป็น AI ที่ช่วย parse ข้อความภาษาไทย/อังกฤษเกี่ยวกับการขอลา
 
@@ -51,22 +57,56 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
   }
 
   ตัวอย่าง:
-  - "ขอลาวันนี้ 3 วัน" → {"intent": "leave_request", "start_date": "2025-01-15", "end_date": "2025-01-17", "reason": "personal", "leave_type": "Personal", "confidence": 0.9}
+  - "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว" → {"intent": "leave_request", "start_date": "2025-01-15", "end_date": "2025-01-17", "reason": "work family", "leave_type": "Personal", "confidence": 0.9}
   - "ลาป่วยวันนี้" → {"intent": "leave_request", "start_date": "2025-01-15", "end_date": "2025-01-15", "reason": "sick", "leave_type": "Sick", "confidence": 0.95}
   - "หยุดวันนี้" → {"intent": "unknown", "confidence": 0.3}
+
+  ห้ามมี text อื่นนอกเหนือจาก JSON
   `
 
   try {
+    console.log('Calling Gemini API with model:', 'gemini-1.5-flash')
+    console.log('Message to parse:', text)
+
     const result = await model.generateContent(prompt)
     const response = await result.response
-    const text = response.text()
+    const responseText = response.text()
+
+    console.log('Gemini raw response:', responseText)
 
     // Clean up the response (remove markdown code blocks if any)
-    const cleanText = text.replace(/```json\n?|\n?```/g, '').trim()
+    const cleanText = responseText.replace(/```json\n?|\n?```/g, '').trim()
 
-    return JSON.parse(cleanText)
+    console.log('Cleaned response:', cleanText)
+
+    const parsed = JSON.parse(cleanText)
+
+    // Validate response structure
+    if (!parsed.intent || typeof parsed.confidence !== 'number') {
+      console.error('Invalid Gemini response structure:', parsed)
+      return { intent: 'unknown', confidence: 0 }
+    }
+
+    return parsed
   } catch (error) {
     console.error('Error parsing message with Gemini:', error)
+
+    // Fallback for common errors
+    if (error.message?.includes('404') || error.message?.includes('not found')) {
+      console.error('Gemini model not found, trying alternative model...')
+
+      try {
+        // Try alternative model
+        const altModel = genAI.getGenerativeModel({ model: 'gemini-pro' })
+        const result = await altModel.generateContent(prompt)
+        const response = await result.response
+        const cleanText = response.text().replace(/```json\n?|\n?```/g, '').trim()
+        return JSON.parse(cleanText)
+      } catch (altError) {
+        console.error('Alternative model also failed:', altError)
+      }
+    }
+
     return { intent: 'unknown', confidence: 0 }
   }
 }

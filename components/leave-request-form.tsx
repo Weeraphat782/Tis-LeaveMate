@@ -96,38 +96,38 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
     console.log('📤 Starting leave request submission...')
 
     try {
-      // Save to Supabase
-      const result = await leaveRequestsApi.createLeaveRequest({
-        user_id: currentUser.id,
-        userName: currentUser.name,
-        userEmail: currentUser.email,
-        leaveType: selectedLeaveType.label,
-        selectedDates: selectedDates.map(date => date.toISOString()),
-        days,
-        reason,
-        status: "pending",
-        approvedAt: null,
-        approvedBy: null,
-        approvedByName: null,
-      })
+    // Save to Supabase
+    const result = await leaveRequestsApi.createLeaveRequest({
+      user_id: currentUser.id,
+      userName: currentUser.name,
+      userEmail: currentUser.email,
+      leaveType: selectedLeaveType.label,
+      selectedDates: selectedDates.map(date => date.toISOString()),
+      days,
+      reason,
+      status: "pending",
+      approvedAt: null,
+      approvedBy: null,
+      approvedByName: null,
+    })
 
       console.log('📥 createLeaveRequest result:', result)
 
-      if (!result.success) {
+    if (!result.success) {
         console.error('❌ Submit failed:', result.error)
-        toast({
-          title: "Error",
-          description: result.error || "Failed to submit leave request",
-          variant: "destructive",
-        })
-        return
-      }
+      toast({
+        title: "Error",
+        description: result.error || "Failed to submit leave request",
+        variant: "destructive",
+      })
+      return
+    }
 
       console.log('✅ Submit successful, showing success toast')
-      toast({
-        title: "Success",
-        description: "Leave request submitted successfully",
-      })
+    toast({
+      title: "Success",
+      description: "Leave request submitted successfully",
+    })
     } catch (error) {
       console.error('💥 Unexpected error in handleSubmit:', error)
       toast({

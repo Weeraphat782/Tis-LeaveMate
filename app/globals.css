@@ -122,3 +122,106 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* FullCalendar Custom Styles */
+.calendar-container .fc {
+  font-family: inherit;
+}
+
+.calendar-container .fc-header-toolbar {
+  margin-bottom: 1rem !important;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.calendar-container .fc-button {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border-radius: 6px !important;
+  font-size: 0.875rem !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.2s !important;
+}
+
+.calendar-container .fc-button:hover {
+  background-color: hsl(var(--primary) / 0.9) !important;
+  border-color: hsl(var(--primary) / 0.9) !important;
+}
+
+.calendar-container .fc-button:not(:disabled).fc-button-active {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 1px hsl(var(--primary)) !important;
+}
+
+.calendar-container .fc-daygrid-day:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.calendar-container .fc-event {
+  border-radius: 4px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  padding: 2px 4px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.calendar-container .fc-event:hover {
+  transform: scale(1.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-container .fc-daygrid-event-dot {
+  display: none;
+}
+
+.calendar-container .fc-col-header {
+  background-color: hsl(var(--muted) / 0.3);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+.calendar-container .fc-day-today {
+  background-color: hsl(var(--accent) / 0.1) !important;
+}
+
+.calendar-container .fc-daygrid-day-number {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.25rem;
+}
+
+.calendar-container .fc-daygrid-day-top {
+  justify-content: center;
+}
+
+.calendar-container .fc-view-harness {
+  background-color: hsl(var(--card));
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+}
+
+/* Event content styling */
+.calendar-container .fc-event-title {
+  font-size: 0.75rem !important;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* More events link */
+.calendar-container .fc-daygrid-more-link {
+  font-size: 0.75rem !important;
+  color: hsl(var(--primary)) !important;
+  text-decoration: none !important;
+}
+
+.calendar-container .fc-daygrid-more-link:hover {
+  text-decoration: underline !important;
+}

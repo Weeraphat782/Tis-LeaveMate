@@ -104,7 +104,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         if (session?.user && !error) {
           console.log('🔑 Found existing valid session for user:', session.user.id)
-          setSession(session)
+      setSession(session)
           setUser(session.user)
           setCurrentUserId(session.user.id)
           setIsLoggedOut(false)
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(null)
         setCurrentUserId(null)
         setIsLoggedOut(true)
-        setLoading(false)
+      setLoading(false)
         setIsInitialized(true)
       }
     }
@@ -163,7 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Handle sign in - set session but don't persist
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('👤 User signed in:', session.user.id)
-        setSession(session)
+      setSession(session)
         setUser(session.user)
         setCurrentUserId(session.user.id)
         setIsLoggedOut(false)

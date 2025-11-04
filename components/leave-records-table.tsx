@@ -382,54 +382,54 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
             <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-muted/50 rounded-lg">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div>
-                  <Label htmlFor="account-filter" className="text-sm font-medium">Filter by Account</Label>
-                  <Select value={accountFilter} onValueChange={setAccountFilter}>
+                <Label htmlFor="account-filter" className="text-sm font-medium">Filter by Account</Label>
+                <Select value={accountFilter} onValueChange={setAccountFilter}>
                     <SelectTrigger id="account-filter" className="mt-1 h-9 sm:h-10">
-                      <SelectValue placeholder="All Accounts" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Accounts</SelectItem>
-                      {getUniqueUsers().map(user => (
-                        <SelectItem key={user.id} value={user.id}>
+                    <SelectValue placeholder="All Accounts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Accounts</SelectItem>
+                    {getUniqueUsers().map(user => (
+                      <SelectItem key={user.id} value={user.id}>
                           <div className="truncate">
                             <span className="font-medium">{user.name}</span>
                             <span className="text-muted-foreground ml-1">({user.email})</span>
                           </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
                 <div>
-                  <Label htmlFor="month-filter" className="text-sm font-medium">Filter by Month</Label>
-                  <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <Label htmlFor="month-filter" className="text-sm font-medium">Filter by Month</Label>
+                <Select value={monthFilter} onValueChange={setMonthFilter}>
                     <SelectTrigger id="month-filter" className="mt-1 h-9 sm:h-10">
-                      <SelectValue placeholder="All Months" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Months</SelectItem>
-                      <SelectItem value="1">January</SelectItem>
-                      <SelectItem value="2">February</SelectItem>
-                      <SelectItem value="3">March</SelectItem>
-                      <SelectItem value="4">April</SelectItem>
-                      <SelectItem value="5">May</SelectItem>
-                      <SelectItem value="6">June</SelectItem>
-                      <SelectItem value="7">July</SelectItem>
-                      <SelectItem value="8">August</SelectItem>
-                      <SelectItem value="9">September</SelectItem>
-                      <SelectItem value="10">October</SelectItem>
-                      <SelectItem value="11">November</SelectItem>
-                      <SelectItem value="12">December</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {(accountFilter !== "all" || monthFilter !== "all") && (
+                    <SelectValue placeholder="All Months" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Months</SelectItem>
+                    <SelectItem value="1">January</SelectItem>
+                    <SelectItem value="2">February</SelectItem>
+                    <SelectItem value="3">March</SelectItem>
+                    <SelectItem value="4">April</SelectItem>
+                    <SelectItem value="5">May</SelectItem>
+                    <SelectItem value="6">June</SelectItem>
+                    <SelectItem value="7">July</SelectItem>
+                    <SelectItem value="8">August</SelectItem>
+                    <SelectItem value="9">September</SelectItem>
+                    <SelectItem value="10">October</SelectItem>
+                    <SelectItem value="11">November</SelectItem>
+                    <SelectItem value="12">December</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(accountFilter !== "all" || monthFilter !== "all") && (
                   <div className="flex items-end sm:col-span-2 lg:col-span-1">
                     <Button variant="outline" size="sm" onClick={clearFilters} className="w-full sm:w-auto">
-                      Clear Filters
-                    </Button>
-                  </div>
-                )}
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
               </div>
             </div>
           )}

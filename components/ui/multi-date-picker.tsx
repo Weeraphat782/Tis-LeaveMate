@@ -6,9 +6,10 @@ import { useState, useEffect } from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getHolidayForDate, getHolidaysForMonthAsync } from "@/lib/holidays"
+import { getHolidayForDate, getHolidaysForMonthAsync, getCountryFlag, getCountryName } from "@/lib/holidays"
 
 interface MultiDatePickerProps {
   selectedDates: Date[]
@@ -97,7 +98,7 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
         onSelect={handleDateClick}
         month={currentMonth}
         onMonthChange={setCurrentMonth}
-        className="rounded-md border text-lg"
+        className="rounded-md border"
         modifiers={{
           selected: selectedDates,
           thailandHoliday: holidaysThisMonth.filter(h => h.country === 'TH').map(h => new Date(h.date)),
@@ -113,36 +114,53 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
             const isSelected = isDateSelected(date)
             const holiday = getHolidayForDate(date, holidaysThisMonth)
 
-            return (
+            const dayContent = (
               <div className={cn(
-                "relative w-full h-full flex flex-col items-center justify-center min-h-[5rem] p-1",
+                "relative w-full h-full flex items-center justify-center",
                 isSelected && "font-bold"
               )}>
-                {/* วันที่ */}
-                <div className="text-center">
-                  {date.getDate()}
-                  {isSelected && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
-                  )}
-                </div>
-
-                {/* ชื่อวันหยุด */}
+                {date.getDate()}
+                {isSelected && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+                )}
                 {holiday && (
                   <div className={cn(
-                    "text-xs text-center leading-tight mt-1 px-1 rounded-sm",
-                    "truncate max-w-full",
-                    holiday.country === 'TH'
-                      ? "bg-red-100 text-red-800"
-                      : "bg-orange-100 text-orange-800"
-                  )} title={holiday.name}>
-                    {holiday.name.length > 10
-                      ? `${holiday.name.substring(0, 8)}...`
-                      : holiday.name
-                    }
-                  </div>
+                    "absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full",
+                    holiday.country === 'TH' ? "bg-red-500" : "bg-orange-500"
+                  )} />
                 )}
               </div>
             )
+
+            if (holiday) {
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {dayContent}
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="text-sm">
+                      <div className="font-medium flex items-center gap-1">
+                        {getCountryFlag(holiday.country)} {holiday.name}
+                      </div>
+                      <div className="text-muted-foreground text-xs">
+                        {getCountryName(holiday.country)} • {holiday.type}
+                      </div>
+                      <div className="text-muted-foreground text-xs mt-1">
+                        {new Date(holiday.date).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )
+            }
+
+            return dayContent
           }
         }}
       />

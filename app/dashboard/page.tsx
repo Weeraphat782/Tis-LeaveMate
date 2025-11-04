@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { LeaveRequestForm } from "@/components/leave-request-form"
 import { LeaveRecordsTable } from "@/components/leave-records-table"
 import { LeaveStats } from "@/components/leave-stats"
+import { LeaveCalendar } from "@/components/leave-calendar"
 import { SupabaseSetupWarning } from "@/components/supabase-setup-warning"
 import { useAuth } from "@/lib/auth-context"
 import { useToast } from "@/hooks/use-toast"
@@ -77,7 +78,7 @@ export default function DashboardPage() {
 
     // Check immediately if initialized
     if (isInitialized) {
-      checkAuth()
+    checkAuth()
     }
 
     // Check again after a short delay to catch any race conditions
@@ -199,22 +200,22 @@ export default function DashboardPage() {
             {/* Logo and App Title */}
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
                   className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground"
-                >
-                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-                  <line x1="16" x2="16" y1="2" y2="6" />
-                  <line x1="8" x2="8" y1="2" y2="6" />
-                  <line x1="3" x2="21" y1="10" y2="10" />
-                </svg>
-              </div>
+              >
+                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                <line x1="16" x2="16" y1="2" y2="6" />
+                <line x1="8" x2="8" y1="2" y2="6" />
+                <line x1="3" x2="21" y1="10" y2="10" />
+              </svg>
+            </div>
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-xl font-bold truncate">TIS Leave Management</h1>
                 <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Leave Management System</p>
@@ -223,19 +224,19 @@ export default function DashboardPage() {
 
             {/* User Info and Logout - Desktop */}
             <div className="hidden md:flex items-center gap-4">
-              <div className="text-right">
+            <div className="text-right">
                 <p className="text-sm font-medium truncate max-w-32">{user.user_metadata?.name || user.email?.split('@')[0]}</p>
                 <p className="text-xs text-muted-foreground truncate max-w-40">{user.email}</p>
-              </div>
-              <Button
-                variant="outline"
+            </div>
+            <Button
+              variant="outline"
                 size="sm"
-                onMouseDown={handleLogout}
-                disabled={isLoggingOut}
+              onMouseDown={handleLogout}
+              disabled={isLoggingOut}
                 className="text-sm px-3"
-              >
-                {isLoggingOut ? "Logging out..." : "Logout"}
-              </Button>
+            >
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </Button>
             </div>
 
             {/* User Info and Logout - Mobile/Tablet */}
@@ -303,18 +304,24 @@ export default function DashboardPage() {
         </div>
 
         <Tabs defaultValue="my-leaves" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1">
             <TabsTrigger
               value="my-leaves"
-              className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="text-xs sm:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               My Leave Records
             </TabsTrigger>
             <TabsTrigger
               value="team-leaves"
-              className="text-xs sm:text-sm py-2 px-2 sm:px-4 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              className="text-xs sm:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
             >
               Team Leave Records
+            </TabsTrigger>
+            <TabsTrigger
+              value="calendar"
+              className="text-xs sm:text-sm py-2 px-1 sm:px-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              📅 Calendar
             </TabsTrigger>
           </TabsList>
           <TabsContent value="my-leaves" className="mt-6">
@@ -338,6 +345,9 @@ export default function DashboardPage() {
               viewMode="team"
               refreshKey={refreshKey}
             />
+          </TabsContent>
+          <TabsContent value="calendar" className="mt-6">
+            <LeaveCalendar />
           </TabsContent>
         </Tabs>
       </main>

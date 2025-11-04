@@ -339,14 +339,14 @@ export const leaveRequestsApi = {
       console.log('✅ Delete permission verified, proceeding with delete...')
 
       // Perform the delete
-      const { error } = await supabase
-        .from('leave_requests')
-        .delete()
-        .eq('id', id)
+    const { error } = await supabase
+      .from('leave_requests')
+      .delete()
+      .eq('id', id)
 
       console.log('📊 Delete result:', { error })
 
-      if (error) {
+    if (error) {
         console.error('❌ Database delete error:', error)
         console.error('Error details:', {
           message: error.message,
@@ -355,10 +355,10 @@ export const leaveRequestsApi = {
           code: error.code
         })
         return { success: false, error: `Database error: ${error.message}` }
-      }
+    }
 
       console.log('✅ Leave request deleted successfully')
-      return { success: true }
+    return { success: true }
     } catch (err) {
       console.error('💥 Unexpected error in deleteLeaveRequest:', err)
       console.error('Error type:', typeof err)
@@ -412,23 +412,23 @@ export const leaveRequestsApi = {
 
       console.log('✅ Permission verified, proceeding with approval...')
 
-      const { error } = await supabase
-        .from('leave_requests')
-        .update({
-          status: approved ? 'approved' : 'rejected',
-          approved_at: new Date().toISOString(),
-          approved_by: approvedBy,
-          approved_by_name: approvedByName,
-        })
-        .eq('id', id)
+    const { error } = await supabase
+      .from('leave_requests')
+      .update({
+        status: approved ? 'approved' : 'rejected',
+        approved_at: new Date().toISOString(),
+        approved_by: approvedBy,
+        approved_by_name: approvedByName,
+      })
+      .eq('id', id)
 
-      if (error) {
+    if (error) {
         console.error('❌ Error updating leave request:', error)
-        return { success: false, error: error.message }
-      }
+      return { success: false, error: error.message }
+    }
 
       console.log('✅ Leave request updated successfully')
-      return { success: true }
+    return { success: true }
     } catch (err) {
       console.error('💥 Unexpected error in approveLeaveRequest:', err)
       return { success: false, error: `Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}` }

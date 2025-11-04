@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase-server'
 
 // Gemini API configuration
 const GEMINI_API_KEY = process.env.GOOGLE_AI_API_KEY!
-const GEMINI_MODEL = 'gemini-2.5-flash'
+const GEMINI_MODEL = 'gemini-2.0-flash'
 
 interface TelegramMessage {
   message_id: number
@@ -67,10 +67,11 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
     console.log('Calling Gemini API with model:', GEMINI_MODEL)
     console.log('Message to parse:', text)
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-goog-api-key': GEMINI_API_KEY,
       },
       body: JSON.stringify({
         contents: [{

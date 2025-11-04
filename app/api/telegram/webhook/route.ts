@@ -255,19 +255,6 @@ async function handleConnectCommand(message: TelegramMessage) {
       `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 อีเมล: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nพบข้อมูลการลา ${existingLeaveRequests.length} รายการในระบบ\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
     )
 
-      // For demo purposes, accept any email and use a dummy user ID
-      // In production, you should validate against actual users
-      console.log('Demo mode: accepting email for testing purposes')
-      // Create a consistent UUID-like string for demo (valid UUID format)
-      const crypto = await import('crypto')
-      const hash = crypto.createHash('md5').update(email).digest('hex')
-      userId = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`
-
-      await sendTelegramReply(
-        message.chat.id,
-        `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 อีเมล: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nพบข้อมูลการลา ${existingLeaveRequests.length} รายการในระบบ\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
-      )
-
     // Check if already connected
     const { data: existingMapping } = await supabase
       .from('telegram_users')

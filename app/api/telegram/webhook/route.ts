@@ -274,7 +274,7 @@ async function handleConnectCommand(message: TelegramMessage) {
     // If no email found, ask for it
     await sendTelegramReply(
       message.chat.id,
-      '❓ กรุณาระบุอีเมลของคุณ\n\nตัวอย่าง:\n• "/connect your-email@example.com"\n• "connect myemail@company.com"'
+      '❓ Please specify your email address\n\nExamples:\n• "/connect your-email@example.com"\n• "connect myemail@company.com"'
     )
     return
   }
@@ -296,7 +296,7 @@ async function handleConnectCommand(message: TelegramMessage) {
       console.log('Profile not found for email:', email, 'Error:', profileError)
       await sendTelegramReply(
         message.chat.id,
-        `❌ ไม่พบผู้ใช้ในระบบสำหรับอีเมล: ${email}\n\nกรุณาตรวจสอบ:\n• อีเมลต้องตรงกับที่ใช้สมัครสมาชิก\n• หรือติดต่อ admin เพื่อเพิ่มบัญชี`
+        `❌ User not found in system for email: ${email}\n\nPlease check:\n• Email must match your registration email\n• Or contact admin to add your account`
       )
       return
     }
@@ -313,7 +313,7 @@ async function handleConnectCommand(message: TelegramMessage) {
 
     await sendTelegramReply(
       message.chat.id,
-      `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 ${profile.full_name || email}\n📧 ${email}\n🔗 Telegram ID: ${message.from.id}\n\nพบข้อมูลการลา ${leaveRequestCount || 0} รายการในระบบ\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
+      `✅ Account connected successfully!\n\n👤 ${profile.full_name || email}\n📧 ${email}\n🔗 Telegram ID: ${message.from.id}\n\nFound ${leaveRequestCount || 0} leave requests in system\n\nYou can now:\n• Request leave in natural language\n• Check leave status\n\nTry typing: "Take 3 days leave today for family matters"`
     )
 
     // Check if already connected
@@ -326,7 +326,7 @@ async function handleConnectCommand(message: TelegramMessage) {
     if (existingMapping) {
       await sendTelegramReply(
         message.chat.id,
-        `✅ บัญชีนี้เชื่อมต่อกับอีเมล: ${existingMapping.email} แล้ว\n\nต้องการเปลี่ยนอีเมลหรือไม่?`
+        `✅ This account is already connected to email: ${existingMapping.email}\n\nDo you want to change the email?`
       )
       return
     }
@@ -348,7 +348,7 @@ async function handleConnectCommand(message: TelegramMessage) {
       console.error('Error creating telegram user mapping:', insertError)
       await sendTelegramReply(
         message.chat.id,
-        '❌ เกิดข้อผิดพลาดในการเชื่อมต่อบัญชี กรุณาลองใหม่'
+        '❌ Error connecting account, please try again'
       )
       return
     }
@@ -356,7 +356,7 @@ async function handleConnectCommand(message: TelegramMessage) {
     // Success!
     await sendTelegramReply(
       message.chat.id,
-      `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 อีเมล: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
+      `✅ Account connected successfully!\n\n👤 Email: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nYou can now:\n• Request leave in natural language\n• Check leave status\n\nTry typing: "Take 3 days leave today for family matters"`
     )
 
     console.log('Successfully connected Telegram user:', message.from.id, 'to email:', email)
@@ -365,7 +365,7 @@ async function handleConnectCommand(message: TelegramMessage) {
     console.error('Error in handleConnectCommand:', error)
     await sendTelegramReply(
       message.chat.id,
-      '❌ เกิดข้อผิดพลาด กรุณาลองใหม่'
+      '❌ An error occurred, please try again'
     )
   }
 }
@@ -418,7 +418,7 @@ export async function POST(request: NextRequest) {
     if (parsedMessage.intent !== 'leave_request' || parsedMessage.confidence < 0.7) {
       await sendTelegramReply(
         message.chat.id,
-        '❓ ไม่เข้าใจข้อความของคุณ ลองพิมพ์ใหม่นะ\n\nตัวอย่าง:\n• "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"\n• "ลาป่วยวันนี้"\n• "ขอลา 15-17 มกราคม ไปเที่ยว"\n\nหรือพิมพ์:\n• "/connect your-email@example.com" เพื่อเชื่อมต่อบัญชี'
+        '❓ I don\'t understand your message, please try again\n\nExamples:\n• "Take 3 days leave today for family matters"\n• "Sick leave today"\n• "Leave from Jan 15-17 for vacation"\n\nOr type:\n• "/connect your-email@example.com" to connect your account'
       )
       return NextResponse.json({ ok: true })
     }
@@ -429,7 +429,7 @@ export async function POST(request: NextRequest) {
     if (!userMapping) {
       await sendTelegramReply(
         message.chat.id,
-        '❌ คุณยังไม่ได้เชื่อมต่อบัญชีกับระบบ\n\nกรุณาติดต่อ admin เพื่อ setup การเชื่อมต่อ Telegram กับบัญชีของคุณ'
+        '❌ Your account is not connected to the system\n\nPlease contact admin to setup your Telegram account connection'
       )
       return NextResponse.json({ ok: true })
     }
@@ -442,16 +442,16 @@ export async function POST(request: NextRequest) {
     )
 
     // 5. Send success reply
-    const replyText = `✅ ส่งคำขอลาเรียบร้อยแล้ว!
+    const replyText = `✅ Leave request submitted successfully!
 
 👤 ${userMapping.profile.full_name || userMapping.profile.email}
-📅 จาก: ${parsedMessage.start_date}
-📅 ถึง: ${parsedMessage.end_date}
-📊 วัน: ${leaveRequest.days} วัน
-💬 เหตุผล: ${parsedMessage.reason}
-🏷️ ประเภท: ${parsedMessage.leave_type}
+📅 From: ${parsedMessage.start_date}
+📅 To: ${parsedMessage.end_date}
+📊 Days: ${leaveRequest.days} day(s)
+💬 Reason: ${parsedMessage.reason}
+🏷️ Type: ${parsedMessage.leave_type}
 
-สถานะ: ⏳ รอการอนุมัติ`
+Status: ⏳ Pending approval`
 
     await sendTelegramReply(message.chat.id, replyText)
 

@@ -129,6 +129,8 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
 async function findUserByTelegramId(telegramId: number) {
   const supabase = createClient()
 
+  console.log('Looking for user with telegram ID:', telegramId, 'Type:', typeof telegramId)
+
   const { data, error } = await supabase
     .from('telegram_users')
     .select(`
@@ -142,10 +144,41 @@ async function findUserByTelegramId(telegramId: number) {
     .eq('telegram_user_id', telegramId)
     .single()
 
-  if (error || !data) {
-    console.log('User not found for telegram ID:', telegramId)
+  if (error) {
+    console.error('Database error finding user:', error)
+    console.log('Error details:', {
+      code: error.code,
+      message: error.message,
+      telegramId: telegramId,
+      telegramIdType: typeof telegramId
+    })
+  }
+
+  if (!data) {
+    console.log('No user mapping found for telegram ID:', telegramId)
+
+    // Try to list all telegram_users for debugging
+    const { data: allUsers, error: listError } = await supabase
+      .from('telegram_users')
+      .select('telegram_user_id, email')
+      .limit(10)
+
+    if (!listError && allUsers) {
+      console.log('Existing telegram users:', allUsers.map(u => ({
+        id: u.telegram_user_id,
+        idType: typeof u.telegram_user_id,
+        email: u.email
+      })))
+    }
+
     return null
   }
+
+  console.log('Found user mapping:', {
+    telegramUserId: data.telegram_user_id,
+    email: data.email,
+    userId: data.user_id
+  })
 
   return {
     telegramUser: data,

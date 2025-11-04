@@ -220,23 +220,29 @@ async function handleConnectCommand(message: TelegramMessage) {
   try {
     const supabase = createClient()
 
-    // Check if user with this email exists (query profiles table)
-    // Assuming profiles table has user_id that maps to auth.users
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, user_id, email')
-      .eq('email', email)
-      .single()
+    // For demo purposes, accept any email and create a consistent UUID
+    // In production, you should validate against actual users in auth.users or profiles
+    console.log('Demo mode: accepting email for testing purposes:', email)
 
-    let userId: string
+    // Create a consistent UUID-like string for demo (valid UUID format)
+    const crypto = await import('crypto')
+    const hash = crypto.createHash('md5').update(email).digest('hex')
+    const userId = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`
 
-    if (profileError || !profileData) {
-      console.log('Profile not found for email:', email, 'Error:', profileError)
+    console.log('Generated demo user ID:', userId)
+
+    await sendTelegramReply(
+      message.chat.id,
+      `⚠️ Demo Mode: เชื่อมต่ออีเมล ${email} สำเร็จ\n\n(ในระบบจริงจะตรวจสอบอีเมลก่อน)\n\nตอนนี้คุณสามารถทดสอบขอลาได้เลย!`
+    )
 
       // For demo purposes, accept any email and use a dummy user ID
       // In production, you should validate against actual users
       console.log('Demo mode: accepting email for testing purposes')
-      userId = `demo-${email.replace(/[^a-zA-Z0-9]/g, '-')}`
+      // Create a consistent UUID-like string for demo (valid UUID format)
+      const crypto = await import('crypto')
+      const hash = crypto.createHash('md5').update(email).digest('hex')
+      userId = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`
 
       await sendTelegramReply(
         message.chat.id,

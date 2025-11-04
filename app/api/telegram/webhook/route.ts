@@ -67,6 +67,7 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
   try {
     console.log('Calling Gemini API with model:', 'gemini-1.5-flash')
     console.log('Message to parse:', text)
+    console.log('Using API key starting with:', process.env.GOOGLE_AI_API_KEY.substring(0, 10) + '...')
 
     const result = await model.generateContent(prompt)
     const response = await result.response
@@ -91,20 +92,36 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
   } catch (error) {
     console.error('Error parsing message with Gemini:', error)
 
-    // Fallback for common errors
-    if (error.message?.includes('404') || error.message?.includes('not found')) {
-      console.error('Gemini model not found, trying alternative model...')
+    // Fallback: try direct REST API call
+    console.log('Trying direct REST API call...')
+    try {
+      const directResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${process.env.GOOGLE_AI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
+      })
 
-      try {
-        // Try alternative model
-        const altModel = genAI.getGenerativeModel({ model: 'gemini-pro' })
-        const result = await altModel.generateContent(prompt)
-        const response = await result.response
-        const cleanText = response.text().replace(/```json\n?|\n?```/g, '').trim()
-        return JSON.parse(cleanText)
-      } catch (altError) {
-        console.error('Alternative model also failed:', altError)
+      if (directResponse.ok) {
+        const data = await directResponse.json()
+        const responseText = data.candidates[0].content.parts[0].text
+        const cleanText = responseText.replace(/```json\n?|\n?```/g, '').trim()
+        const parsed = JSON.parse(cleanText)
+
+        console.log('Direct API call successful')
+        return parsed
+      } else {
+        console.error('Direct API call failed:', directResponse.status, await directResponse.text())
       }
+    } catch (directError) {
+      console.error('Direct API call error:', directError)
     }
 
     return { intent: 'unknown', confidence: 0 }

@@ -196,6 +196,98 @@ function generateDateRange(start: Date, end: Date): string[] {
   return dates
 }
 
+async function handleConnectCommand(message: TelegramMessage) {
+  const text = message.text.toLowerCase()
+
+  // Extract email from message
+  let email = ''
+
+  // Try different patterns
+  const emailMatch = message.text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+  if (emailMatch) {
+    email = emailMatch[1]
+  } else {
+    // If no email found, ask for it
+    await sendTelegramReply(
+      message.chat.id,
+      '❓ กรุณาระบุอีเมลของคุณ\n\nตัวอย่าง:\n• "/connect your-email@example.com"\n• "connect myemail@company.com"'
+    )
+    return
+  }
+
+  console.log('Attempting to connect email:', email, 'for Telegram ID:', message.from.id)
+
+  try {
+    const supabase = createClient()
+
+    // Check if user with this email exists
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email)
+
+    if (userError || !userData.user) {
+      console.log('User not found for email:', email)
+      await sendTelegramReply(
+        message.chat.id,
+        `❌ ไม่พบผู้ใช้ที่มีอีเมล: ${email}\n\nกรุณาตรวจสอบ:\n• อีเมลต้องตรงกับที่ใช้ในระบบ\n• หรือติดต่อ admin`
+      )
+      return
+    }
+
+    const userId = userData.user.id
+
+    // Check if already connected
+    const { data: existingMapping } = await supabase
+      .from('telegram_users')
+      .select('*')
+      .eq('telegram_user_id', message.from.id)
+      .single()
+
+    if (existingMapping) {
+      await sendTelegramReply(
+        message.chat.id,
+        `✅ บัญชีนี้เชื่อมต่อกับอีเมล: ${existingMapping.email} แล้ว\n\nต้องการเปลี่ยนอีเมลหรือไม่?`
+      )
+      return
+    }
+
+    // Create new mapping
+    const { error: insertError } = await supabase
+      .from('telegram_users')
+      .insert({
+        telegram_user_id: message.from.id,
+        user_id: userId,
+        email: email,
+        telegram_username: message.from.username || null,
+        telegram_first_name: message.from.first_name || null,
+        telegram_last_name: message.from.last_name || null,
+        chat_id: message.chat.id
+      })
+
+    if (insertError) {
+      console.error('Error creating telegram user mapping:', insertError)
+      await sendTelegramReply(
+        message.chat.id,
+        '❌ เกิดข้อผิดพลาดในการเชื่อมต่อบัญชี กรุณาลองใหม่'
+      )
+      return
+    }
+
+    // Success!
+    await sendTelegramReply(
+      message.chat.id,
+      `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 อีเมล: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
+    )
+
+    console.log('Successfully connected Telegram user:', message.from.id, 'to email:', email)
+
+  } catch (error) {
+    console.error('Error in handleConnectCommand:', error)
+    await sendTelegramReply(
+      message.chat.id,
+      '❌ เกิดข้อผิดพลาด กรุณาลองใหม่'
+    )
+  }
+}
+
 async function sendTelegramReply(chatId: number, text: string) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN!
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`
@@ -228,16 +320,23 @@ export async function POST(request: NextRequest) {
 
     console.log('Received Telegram message:', message.text)
 
-    // 1. Parse message with Gemini AI
+    // 1. Check for connect command first
+    const lowerText = message.text.toLowerCase()
+    if (lowerText.startsWith('/connect ') || lowerText.includes('connect')) {
+      await handleConnectCommand(message)
+      return NextResponse.json({ ok: true })
+    }
+
+    // 2. Parse message with Gemini AI
     const parsedMessage = await parseMessageWithGemini(message.text)
 
     console.log('Parsed message:', parsedMessage)
 
-    // 2. Check if it's a leave request with high confidence
+    // 3. Check if it's a leave request with high confidence
     if (parsedMessage.intent !== 'leave_request' || parsedMessage.confidence < 0.7) {
       await sendTelegramReply(
         message.chat.id,
-        '❓ ไม่เข้าใจข้อความของคุณ ลองพิมพ์ใหม่นะ\n\nตัวอย่าง:\n• "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"\n• "ลาป่วยวันนี้"\n• "ขอลา 15-17 มกราคม ไปเที่ยว"'
+        '❓ ไม่เข้าใจข้อความของคุณ ลองพิมพ์ใหม่นะ\n\nตัวอย่าง:\n• "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"\n• "ลาป่วยวันนี้"\n• "ขอลา 15-17 มกราคม ไปเที่ยว"\n\nหรือพิมพ์:\n• "/connect your-email@example.com" เพื่อเชื่อมต่อบัญชี'
       )
       return NextResponse.json({ ok: true })
     }

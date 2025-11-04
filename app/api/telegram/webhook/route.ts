@@ -133,14 +133,7 @@ async function findUserByTelegramId(telegramId: number) {
 
   const { data, error } = await supabase
     .from('telegram_users')
-    .select(`
-      *,
-      profiles:user_id (
-        id,
-        email,
-        full_name
-      )
-    `)
+    .select('*')
     .eq('telegram_user_id', telegramId)
     .single()
 
@@ -160,14 +153,15 @@ async function findUserByTelegramId(telegramId: number) {
     // Try to list all telegram_users for debugging
     const { data: allUsers, error: listError } = await supabase
       .from('telegram_users')
-      .select('telegram_user_id, email')
+      .select('telegram_user_id, email, user_id')
       .limit(10)
 
     if (!listError && allUsers) {
       console.log('Existing telegram users:', allUsers.map(u => ({
         id: u.telegram_user_id,
         idType: typeof u.telegram_user_id,
-        email: u.email
+        email: u.email,
+        userId: u.user_id
       })))
     }
 
@@ -180,9 +174,20 @@ async function findUserByTelegramId(telegramId: number) {
     userId: data.user_id
   })
 
+  // Fetch profile data separately
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, email, full_name')
+    .eq('id', data.user_id)
+    .single()
+
+  if (profileError) {
+    console.log('Profile fetch error (non-critical):', profileError)
+  }
+
   return {
     telegramUser: data,
-    profile: data.profiles
+    profile: profile || null
   }
 }
 

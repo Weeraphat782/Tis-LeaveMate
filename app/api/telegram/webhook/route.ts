@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createClient } from '@/lib/supabase-server'
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+// Gemini API configuration
+const GEMINI_API_KEY = process.env.GOOGLE_AI_API_KEY!
+const GEMINI_MODEL = 'gemini-2.5-flash'
 
 interface TelegramMessage {
   message_id: number
@@ -34,8 +33,8 @@ interface ParsedMessage {
 
 async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
   // Check if API key exists
-  if (!process.env.GOOGLE_AI_API_KEY) {
-    console.error('GOOGLE_AI_API_KEY not found')
+  if (!GEMINI_API_KEY) {
+    console.error('GEMINI_API_KEY not found')
     return { intent: 'unknown', confidence: 0 }
   }
 
@@ -65,15 +64,44 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
   `
 
   try {
-    console.log('Calling Gemini API with model:', 'gemini-1.5-flash')
+    console.log('Calling Gemini API with model:', GEMINI_MODEL)
     console.log('Message to parse:', text)
-    console.log('Using API key starting with:', process.env.GOOGLE_AI_API_KEY.substring(0, 10) + '...')
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const responseText = response.text()
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 1024,
+        }
+      })
+    })
 
-    console.log('Gemini raw response:', responseText)
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Gemini API error:', response.status, errorText)
+      throw new Error(`Gemini API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('Gemini API response:', JSON.stringify(data, null, 2))
+
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text
+
+    if (!responseText) {
+      console.error('No response text from Gemini:', data)
+      return { intent: 'unknown', confidence: 0 }
+    }
+
+    console.log('Gemini response text:', responseText)
 
     // Clean up the response (remove markdown code blocks if any)
     const cleanText = responseText.replace(/```json\n?|\n?```/g, '').trim()
@@ -88,42 +116,11 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
       return { intent: 'unknown', confidence: 0 }
     }
 
+    console.log('Successfully parsed message:', parsed)
     return parsed
+
   } catch (error) {
     console.error('Error parsing message with Gemini:', error)
-
-    // Fallback: try direct REST API call
-    console.log('Trying direct REST API call...')
-    try {
-      const directResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${process.env.GOOGLE_AI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
-        })
-      })
-
-      if (directResponse.ok) {
-        const data = await directResponse.json()
-        const responseText = data.candidates[0].content.parts[0].text
-        const cleanText = responseText.replace(/```json\n?|\n?```/g, '').trim()
-        const parsed = JSON.parse(cleanText)
-
-        console.log('Direct API call successful')
-        return parsed
-      } else {
-        console.error('Direct API call failed:', directResponse.status, await directResponse.text())
-      }
-    } catch (directError) {
-      console.error('Direct API call error:', directError)
-    }
-
     return { intent: 'unknown', confidence: 0 }
   }
 }

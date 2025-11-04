@@ -220,39 +220,36 @@ async function handleConnectCommand(message: TelegramMessage) {
   try {
     const supabase = createClient()
 
-    // Validate user by checking if they have submitted leave requests before
+    // Validate user by checking if they exist in profiles table
     // This ensures they are real users of the system
-    const { data: existingLeaveRequests, error: leaveError } = await supabase
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .eq('email', email)
+      .single()
+
+    if (profileError || !profile) {
+      console.log('Profile not found for email:', email, 'Error:', profileError)
+      await sendTelegramReply(
+        message.chat.id,
+        `❌ ไม่พบผู้ใช้ในระบบสำหรับอีเมล: ${email}\n\nกรุณาตรวจสอบ:\n• อีเมลต้องตรงกับที่ใช้สมัครสมาชิก\n• หรือติดต่อ admin เพื่อเพิ่มบัญชี`
+      )
+      return
+    }
+
+    // Use the profile id (which is the user_id from auth.users)
+    const userId = profile.id
+    console.log('Found profile for email:', email, 'User ID:', userId)
+
+    // Check if user has submitted any leave requests (optional validation)
+    const { count: leaveRequestCount, error: leaveError } = await supabase
       .from('leave_requests')
-      .select('user_id')
-      .eq('user_email', email)
-      .limit(1)
-
-    if (leaveError) {
-      console.error('Error checking leave requests:', leaveError)
-      await sendTelegramReply(
-        message.chat.id,
-        '❌ เกิดข้อผิดพลาดในการตรวจสอบข้อมูล กรุณาลองใหม่'
-      )
-      return
-    }
-
-    if (!existingLeaveRequests || existingLeaveRequests.length === 0) {
-      console.log('No leave requests found for email:', email)
-      await sendTelegramReply(
-        message.chat.id,
-        `❌ ไม่พบข้อมูลการลาในระบบสำหรับอีเมล: ${email}\n\nกรุณาตรวจสอบ:\n• อีเมลต้องตรงกับที่ใช้ส่งคำขอลาในระบบ\n• หรือส่งคำขอลาผ่านเว็บก่อน`
-      )
-      return
-    }
-
-    // Use the user_id from existing leave request
-    const userId = existingLeaveRequests[0].user_id
-    console.log('Found existing user ID:', userId, 'for email:', email)
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
 
     await sendTelegramReply(
       message.chat.id,
-      `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 อีเมล: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nพบข้อมูลการลา ${existingLeaveRequests.length} รายการในระบบ\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
+      `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 ${profile.full_name || email}\n📧 ${email}\n🔗 Telegram ID: ${message.from.id}\n\nพบข้อมูลการลา ${leaveRequestCount || 0} รายการในระบบ\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
     )
 
     // Check if already connected

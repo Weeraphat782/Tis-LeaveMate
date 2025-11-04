@@ -191,6 +191,20 @@ async function findUserByTelegramId(telegramId: number) {
   }
 }
 
+// Map Gemini leave types to database values
+function mapLeaveType(geminiType: string): string {
+  const typeMap: { [key: string]: string } = {
+    'Personal': 'Personal Leave',
+    'Sick': 'Sick Leave',
+    'Vacation': 'Vacation Leave',
+    'personal': 'Personal Leave',
+    'sick': 'Sick Leave',
+    'vacation': 'Vacation Leave'
+  }
+
+  return typeMap[geminiType] || 'Personal Leave' // Default fallback
+}
+
 async function createLeaveRequest(userId: string, parsedMessage: ParsedMessage, telegramMessage: TelegramMessage) {
   const supabase = createClient()
 
@@ -199,9 +213,21 @@ async function createLeaveRequest(userId: string, parsedMessage: ParsedMessage, 
   const endDate = new Date(parsedMessage.end_date!)
   const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
+  // Map leave type to database format
+  const mappedLeaveType = mapLeaveType(parsedMessage.leave_type || 'Personal')
+
+  console.log('Creating leave request:', {
+    userId,
+    originalLeaveType: parsedMessage.leave_type,
+    mappedLeaveType,
+    startDate: parsedMessage.start_date,
+    endDate: parsedMessage.end_date,
+    days
+  })
+
   const leaveRequest = {
     user_id: userId,
-    leave_type: parsedMessage.leave_type || 'Personal',
+    leave_type: mappedLeaveType,
     selected_dates: generateDateRange(startDate, endDate),
     days: days,
     reason: parsedMessage.reason || 'Submitted via Telegram',

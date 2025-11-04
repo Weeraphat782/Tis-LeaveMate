@@ -175,23 +175,38 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
             )
 
             return (
-              <Tooltip delayDuration={300} disableHoverableContent={false}>
+              <Tooltip
+                delayDuration={300}
+                disableHoverableContent={false}
+                open={undefined} // Let Radix handle open/close automatically
+              >
                 <TooltipTrigger asChild>
                   <div
                     className={cn(
-                      "cursor-help w-full h-full flex items-center justify-center",
-                      holiday && "hover:scale-105 transition-transform duration-200"
+                      "cursor-help w-full h-full flex items-center justify-center rounded-sm",
+                      holiday && "hover:scale-105 transition-transform duration-200 hover:bg-accent"
                     )}
-                    onMouseEnter={() => console.log('Mouse enter:', date.toDateString(), holiday?.name || 'working day')}
+                    onMouseEnter={() => {
+                      console.log('🔍 Mouse enter:', date.toDateString(), 'Holiday:', holiday?.name || 'None (Working day)')
+                      // Temporary: Show alert for testing
+                      if (holiday) {
+                        console.log('🎉 HOLIDAY DETECTED:', holiday.name, holiday.country)
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      console.log('👋 Mouse leave:', date.toDateString())
+                    }}
                   >
                     {dayContent}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  sideOffset={5}
-                  className="max-w-xs p-3 bg-background border shadow-lg z-[9999] text-foreground animate-in fade-in-0 zoom-in-95"
+                  sideOffset={8}
+                  className="max-w-xs p-3 bg-popover border shadow-xl z-[10000] text-popover-foreground animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
                   align="center"
+                  avoidCollisions={true}
+                  collisionPadding={10}
                 >
                   {tooltipContent}
                 </TooltipContent>
@@ -270,6 +285,5 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
         </div>
       )}
       </div>
-    </div>
   )
 }

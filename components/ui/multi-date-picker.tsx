@@ -98,7 +98,6 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
         month={currentMonth}
         onMonthChange={setCurrentMonth}
         className="rounded-md border text-lg"
-        style={{ fontSize: '16px' }}
         modifiers={{
           selected: selectedDates,
           thailandHoliday: holidaysThisMonth.filter(h => h.country === 'TH').map(h => new Date(h.date)),
@@ -116,7 +115,7 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
 
             return (
               <div className={cn(
-                "relative w-full h-full flex flex-col items-center justify-center min-h-[4rem] p-1",
+                "relative w-full h-full flex flex-col items-center justify-center min-h-[5rem] p-1",
                 isSelected && "font-bold"
               )}>
                 {/* วันที่ */}

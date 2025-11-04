@@ -19,8 +19,17 @@
 1. ไปที่ APIs & Services → Credentials
 2. Click "Create Credentials" → API Key
 3. **สำคัญ:** ตั้ง Restrictions
-   - Application restrictions: None
-   - API restrictions: Restrict key → เลือก Google Calendar API
+
+   #### Application Restrictions:
+   - เลือก **"None"** (หรือ HTTP referrers สำหรับ production)
+
+   #### API Restrictions:
+   - เลือก **"Restrict key"**
+   - เลือก **"Google Calendar API"**
+
+   #### Data Access:
+   - เลือก **"Application Data"** (ไม่ใช่ User Data)
+   - เพราะเรา access public holiday calendars ไม่ใช่ user-specific data
 
 ### 4. เพิ่ม Environment Variable
 ในไฟล์ `.env.local` (หรือ hosting platform):

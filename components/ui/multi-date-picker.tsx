@@ -25,15 +25,17 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
   // Load holidays when month changes
   useEffect(() => {
     const loadHolidays = async () => {
+      console.log('📅 Loading holidays for:', currentMonth.getFullYear(), currentMonth.getMonth() + 1)
       setHolidaysLoading(true)
       try {
         const holidays = await getHolidaysForMonthAsync(
           currentMonth.getFullYear(),
           currentMonth.getMonth()
         )
+        console.log('✅ Loaded holidays:', holidays.length, 'for month')
         setHolidaysThisMonth(holidays)
       } catch (error) {
-        console.error('Error loading holidays:', error)
+        console.error('❌ Error loading holidays:', error)
         setHolidaysThisMonth([])
       } finally {
         setHolidaysLoading(false)
@@ -114,6 +116,11 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
             const isSelected = isDateSelected(date)
             const holiday = getHolidayForDate(date, holidaysThisMonth)
 
+            // Debug logging
+            if (holiday) {
+              console.log('🎉 Found holiday for date:', date.toDateString(), holiday.name)
+            }
+
             const dayContent = (
               <div className={cn(
                 "relative w-full h-full flex items-center justify-center",
@@ -132,45 +139,91 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
               </div>
             )
 
-            if (holiday) {
-              return (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    {dayContent}
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <div className="text-sm">
-                      <div className="font-medium flex items-center gap-1">
-                        {getCountryFlag(holiday.country)} {holiday.name}
-                      </div>
-                      <div className="text-muted-foreground text-xs">
-                        {getCountryName(holiday.country)} • {holiday.type}
-                      </div>
-                      <div className="text-muted-foreground text-xs mt-1">
-                        {new Date(holiday.date).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </div>
+            // Always show tooltip for better UX
+            const tooltipContent = holiday ? (
+              <div className="space-y-2 min-w-[200px]">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl mt-0.5">{getCountryFlag(holiday.country)}</span>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm leading-tight">{holiday.name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {getCountryName(holiday.country)} • {holiday.type} holiday
                     </div>
-                  </TooltipContent>
-                </Tooltip>
-              )
-            }
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                  {new Date(holiday.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm min-w-[150px]">
+                <div className="font-medium text-green-600 dark:text-green-400">✓ Working Day</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {date.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+              </div>
+            )
 
-            return dayContent
+            return (
+              <Tooltip delayDuration={300} disableHoverableContent={false}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      "cursor-help w-full h-full flex items-center justify-center",
+                      holiday && "hover:scale-105 transition-transform duration-200"
+                    )}
+                    onMouseEnter={() => console.log('Mouse enter:', date.toDateString(), holiday?.name || 'working day')}
+                  >
+                    {dayContent}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  sideOffset={5}
+                  className="max-w-xs p-3 bg-background border shadow-lg z-[9999] text-foreground animate-in fade-in-0 zoom-in-95"
+                  align="center"
+                >
+                  {tooltipContent}
+                </TooltipContent>
+              </Tooltip>
+            )
           }
         }}
       />
 
       {holidaysLoading && (
-        <div className="text-center py-2">
+        <div className="text-center py-3 bg-muted/30 rounded-lg border border-dashed">
           <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="animate-spin rounded-full h-3 w-3 border-b border-muted-foreground"></div>
-            Loading holidays...
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-muted-foreground border-t-transparent"></div>
+            <span>Loading holiday information...</span>
           </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Fetching from Google Calendar
+          </div>
+        </div>
+      )}
+
+      {!holidaysLoading && holidaysThisMonth.length > 0 && (
+        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground bg-muted/20 rounded-lg p-2">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+            <span>🇹🇭 Thailand</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-orange-100 border border-orange-300 rounded"></div>
+            <span>🇮🇳 India</span>
+          </div>
+          <div className="text-xs opacity-75">• Hover for details</div>
         </div>
       )}
 
@@ -216,6 +269,7 @@ export function MultiDatePicker({ selectedDates, onDatesChange, className }: Mul
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

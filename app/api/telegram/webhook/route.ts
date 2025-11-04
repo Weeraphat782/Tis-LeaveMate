@@ -220,20 +220,39 @@ async function handleConnectCommand(message: TelegramMessage) {
   try {
     const supabase = createClient()
 
-    // For demo purposes, accept any email and create a consistent UUID
-    // In production, you should validate against actual users in auth.users or profiles
-    console.log('Demo mode: accepting email for testing purposes:', email)
+    // Validate user by checking if they have submitted leave requests before
+    // This ensures they are real users of the system
+    const { data: existingLeaveRequests, error: leaveError } = await supabase
+      .from('leave_requests')
+      .select('user_id')
+      .eq('user_email', email)
+      .limit(1)
 
-    // Create a consistent UUID-like string for demo (valid UUID format)
-    const crypto = await import('crypto')
-    const hash = crypto.createHash('md5').update(email).digest('hex')
-    const userId = `${hash.substring(0, 8)}-${hash.substring(8, 12)}-${hash.substring(12, 16)}-${hash.substring(16, 20)}-${hash.substring(20, 32)}`
+    if (leaveError) {
+      console.error('Error checking leave requests:', leaveError)
+      await sendTelegramReply(
+        message.chat.id,
+        '❌ เกิดข้อผิดพลาดในการตรวจสอบข้อมูล กรุณาลองใหม่'
+      )
+      return
+    }
 
-    console.log('Generated demo user ID:', userId)
+    if (!existingLeaveRequests || existingLeaveRequests.length === 0) {
+      console.log('No leave requests found for email:', email)
+      await sendTelegramReply(
+        message.chat.id,
+        `❌ ไม่พบข้อมูลการลาในระบบสำหรับอีเมล: ${email}\n\nกรุณาตรวจสอบ:\n• อีเมลต้องตรงกับที่ใช้ส่งคำขอลาในระบบ\n• หรือส่งคำขอลาผ่านเว็บก่อน`
+      )
+      return
+    }
+
+    // Use the user_id from existing leave request
+    const userId = existingLeaveRequests[0].user_id
+    console.log('Found existing user ID:', userId, 'for email:', email)
 
     await sendTelegramReply(
       message.chat.id,
-      `⚠️ Demo Mode: เชื่อมต่ออีเมล ${email} สำเร็จ\n\n(ในระบบจริงจะตรวจสอบอีเมลก่อน)\n\nตอนนี้คุณสามารถทดสอบขอลาได้เลย!`
+      `✅ เชื่อมต่อบัญชีสำเร็จ!\n\n👤 อีเมล: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nพบข้อมูลการลา ${existingLeaveRequests.length} รายการในระบบ\n\nตอนนี้คุณสามารถ:\n• ขอลาได้ด้วยภาษาธรรมชาติ\n• ตรวจสอบสถานะการลา\n\nลองพิมพ์: "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว"`
     )
 
       // For demo purposes, accept any email and use a dummy user ID

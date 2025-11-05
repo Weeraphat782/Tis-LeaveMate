@@ -39,28 +39,34 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
   }
 
   const prompt = `
-  คุณเป็น AI ที่ช่วย parse ข้อความภาษาไทย/อังกฤษเกี่ยวกับการขอลา
+  You are an AI assistant that parses Thai/English messages about leave requests.
 
-  งานของคุณคือวิเคราะห์ข้อความและแยกส่วนต่างๆ ออกมา
+  IMPORTANT RULES:
+  - Dates MUST be specific calendar dates (e.g., '15 November 2025', '15/11/2025', 'November 15, 2025')
+  - DO NOT accept relative dates: 'today', 'tomorrow', 'day after tomorrow', 'next week', 'next month', 'วันนี้', 'พรุ่งนี้', 'มะรืนนี้', 'สัปดาห์หน้า', 'เดือนหน้า'
+  - If no specific dates are mentioned, set intent to "incomplete_request" and dates to null
 
-  ข้อความ: "${text}"
+  Message to analyze: "${text}"
 
-  ให้ตอบเป็น JSON format เท่านั้น:
+  Respond with JSON format only:
   {
-    "intent": "leave_request" | "unknown",
-    "start_date": "YYYY-MM-DD" (ถ้ามี),
-    "end_date": "YYYY-MM-DD" (ถ้ามี),
-    "reason": "เหตุผลการลา" (ถ้ามี),
-    "leave_type": "Personal" | "Sick" | "Vacation" | "อื่นๆ",
-    "confidence": 0.0-1.0 (ความมั่นใจในการวิเคราะห์)
+    "intent": "leave_request" | "incomplete_request" | "unknown",
+    "start_date": "YYYY-MM-DD" (if specific date mentioned),
+    "end_date": "YYYY-MM-DD" (if specific date mentioned),
+    "reason": "reason for leave" (if mentioned),
+    "leave_type": "Personal" | "Sick" | "Vacation" | "Other",
+    "confidence": 0.0-1.0 (confidence in analysis)
   }
 
-  ตัวอย่าง:
-  - "ขอลาวันนี้ 3 วัน เรื่องงานครอบครัว" → {"intent": "leave_request", "start_date": "2025-01-15", "end_date": "2025-01-17", "reason": "work family", "leave_type": "Personal", "confidence": 0.9}
-  - "ลาป่วยวันนี้" → {"intent": "leave_request", "start_date": "2025-01-15", "end_date": "2025-01-15", "reason": "sick", "leave_type": "Sick", "confidence": 0.95}
-  - "หยุดวันนี้" → {"intent": "unknown", "confidence": 0.3}
+  Valid examples (specific dates):
+  - "I want to take leave from 15 November to 17 November for family work" → {"intent": "leave_request", "start_date": "2025-11-15", "end_date": "2025-11-17", "reason": "family work", "leave_type": "Personal", "confidence": 0.9}
+  - "Sick leave on 20/11/2025" → {"intent": "leave_request", "start_date": "2025-11-20", "end_date": "2025-11-20", "reason": "sick", "leave_type": "Sick", "confidence": 0.95}
 
-  ห้ามมี text อื่นนอกเหนือจาก JSON
+  Invalid examples (relative dates):
+  - "Take 3 days leave today for family matters" → {"intent": "incomplete_request", "start_date": null, "end_date": null, "reason": "family matters", "leave_type": "Personal", "confidence": 0.8}
+  - "Sick leave tomorrow" → {"intent": "incomplete_request", "start_date": null, "end_date": null, "reason": "sick", "leave_type": "Sick", "confidence": 0.9}
+
+  Return JSON only, no other text.
   `
 
   try {
@@ -415,10 +421,18 @@ export async function POST(request: NextRequest) {
     console.log('Parsed message:', parsedMessage)
 
     // 3. Check if it's a leave request with high confidence
+    if (parsedMessage.intent === 'incomplete_request') {
+      await sendTelegramReply(
+        message.chat.id,
+        '❌ Please specify specific dates for your leave request.\n\nExamples:\n• "Take leave from 15 November to 17 November for family matters"\n• "Sick leave on 20/11/2025"\n• "Vacation from November 15-17, 2025"\n\nDo not use relative dates like "today", "tomorrow", or "next week".'
+      )
+      return NextResponse.json({ ok: true })
+    }
+
     if (parsedMessage.intent !== 'leave_request' || parsedMessage.confidence < 0.7) {
       await sendTelegramReply(
         message.chat.id,
-        '❓ I don\'t understand your message, please try again\n\nExamples:\n• "Take 3 days leave today for family matters"\n• "Sick leave today"\n• "Leave from Jan 15-17 for vacation"\n\nOr type:\n• "/connect your-email@example.com" to connect your account'
+        '❓ I don\'t understand your message, please try again\n\nExamples:\n• "Take leave from 15 November to 17 November for family matters"\n• "Sick leave on 20/11/2025"\n• "Vacation from November 15-17, 2025"\n\nOr type:\n• "/connect your-email@example.com" to connect your account'
       )
       return NextResponse.json({ ok: true })
     }

@@ -86,15 +86,28 @@ export function LeaveCalendar() {
   const [error, setError] = useState<string | null>(null)
   const [calendarEvents, setCalendarEvents] = useState<any[]>([])
 
-  // Load leave requests (only once on mount)
+  // Load leave requests (only once on mount) with timeout
   useEffect(() => {
     const loadLeaveRequests = async () => {
       try {
-        const requests = await leaveRequestsApi.getAllLeaveRequests()
+        console.log('Loading leave requests...')
+
+        // Add timeout for leave requests fetching (10 seconds)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Leave requests fetch timeout')), 10000)
+        )
+
+        const requestsPromise = leaveRequestsApi.getAllLeaveRequests()
+
+        const requests = await Promise.race([requestsPromise, timeoutPromise]) as any[]
         const approvedLeaves = requests.filter(req => req.status === 'approved')
+
+        console.log(`Loaded ${approvedLeaves.length} approved leave requests`)
         setLeaveRequests(approvedLeaves)
       } catch (err) {
-        console.error('Error loading leave requests:', err)
+        console.warn('Leave requests loading failed, using empty array:', err)
+        // Use empty array as fallback - calendar should still work
+        setLeaveRequests([])
         setError('Failed to load leave requests')
       }
     }
@@ -102,35 +115,40 @@ export function LeaveCalendar() {
     loadLeaveRequests()
   }, [])
 
-  // Load holidays when month changes
+  // Load holidays when month changes (with timeout)
   useEffect(() => {
     const loadHolidays = async () => {
-      if (leaveRequests.length === 0) return // Wait for leave requests first
-
       try {
-        const holidays = await getHolidaysForMonthAsync(
+        console.log(`Loading holidays for ${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}...`)
+
+        // Add timeout for holidays fetching (3 seconds - shorter timeout)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Holiday fetch timeout')), 3000)
+        )
+
+        const holidaysPromise = getHolidaysForMonthAsync(
           currentMonth.getFullYear(),
           currentMonth.getMonth()
         )
+
+        const holidays = await Promise.race([holidaysPromise, timeoutPromise]) as any[]
+        console.log(`Loaded ${holidays.length} holidays`)
         setHolidaysThisMonth(holidays)
-
-        // Convert to FullCalendar events
-        const events = convertToCalendarEvents(leaveRequests, holidays)
-        setCalendarEvents(events)
-
-        setLoading(false)
-        setError(null)
       } catch (err) {
-        console.error('Error loading holidays:', err)
-        setError('Failed to load holidays')
-        setLoading(false)
+        console.warn('Holiday loading failed, using empty holidays:', err)
+        // Use empty holidays array as fallback
+        setHolidaysThisMonth([])
       }
+
+      // Always create events and finish loading
+      const events = convertToCalendarEvents(leaveRequests, holidaysThisMonth)
+      setCalendarEvents(events)
+      setLoading(false)
+      setError(null)
     }
 
-    if (leaveRequests.length > 0) {
-      loadHolidays()
-    }
-  }, [currentMonth, leaveRequests])
+    loadHolidays()
+  }, [currentMonth]) // Remove leaveRequests from dependencies to prevent re-renders
 
   // Handle event click to show details
   const handleEventClick = useCallback((info: any) => {

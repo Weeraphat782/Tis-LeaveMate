@@ -226,7 +226,6 @@ async function createLeaveRequest(userId: string, parsedMessage: ParsedMessage, 
   const startDate = new Date(parsedMessage.start_date!)
   const endDate = new Date(parsedMessage.end_date!)
   const fullDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-  const actualDays = parsedMessage.is_half_day ? 0.5 : fullDays
 
   // Map leave type to database format
   const mappedLeaveType = mapLeaveType(parsedMessage.leave_type || 'Personal')
@@ -238,7 +237,6 @@ async function createLeaveRequest(userId: string, parsedMessage: ParsedMessage, 
     startDate: parsedMessage.start_date,
     endDate: parsedMessage.end_date,
     fullDays,
-    actualDays,
     isHalfDay: parsedMessage.is_half_day,
     halfDayPeriod: parsedMessage.half_day_period
   })
@@ -247,7 +245,7 @@ async function createLeaveRequest(userId: string, parsedMessage: ParsedMessage, 
     user_id: userId,
     leave_type: mappedLeaveType,
     selected_dates: generateDateRange(startDate, endDate),
-    days: actualDays,
+    days: fullDays, // Always store full days as integer
     reason: parsedMessage.reason || 'Submitted via Telegram',
     status: 'pending',
     is_half_day: parsedMessage.is_half_day || false,
@@ -470,12 +468,13 @@ export async function POST(request: NextRequest) {
     )
 
     // 5. Send success reply
+    const displayDays = parsedMessage.is_half_day ? 0.5 : leaveRequest.days
     const replyText = `✅ Leave request submitted successfully!
 
 👤 ${userMapping.profile.full_name || userMapping.profile.email}
 📅 From: ${parsedMessage.start_date}
 📅 To: ${parsedMessage.end_date}
-📊 Days: ${leaveRequest.days} day${leaveRequest.days === 1 ? '' : '(s)'}
+📊 Days: ${displayDays} day${displayDays === 1 || displayDays === 0.5 ? '' : '(s)'}
 💬 Reason: ${parsedMessage.reason || 'Not specified'}
 🏷️ Type: ${parsedMessage.leave_type}
 ${parsedMessage.is_half_day ? `⏰ Period: ${parsedMessage.half_day_period === 'morning' ? 'Morning' : 'Afternoon'}` : ''}

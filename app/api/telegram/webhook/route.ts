@@ -23,12 +23,14 @@ interface TelegramMessage {
 }
 
 interface ParsedMessage {
-  intent: 'leave_request' | 'unknown'
+  intent: 'leave_request' | 'incomplete_request' | 'unknown'
   start_date?: string
   end_date?: string
   reason?: string
   leave_type?: string
   confidence: number
+  is_half_day?: boolean
+  half_day_period?: 'morning' | 'afternoon'
 }
 
 async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
@@ -44,7 +46,9 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
   IMPORTANT RULES:
   - Dates MUST be specific calendar dates (e.g., '15 November 2025', '15/11/2025', 'November 15, 2025')
   - DO NOT accept relative dates: 'today', 'tomorrow', 'day after tomorrow', 'next week', 'next month', 'วันนี้', 'พรุ่งนี้', 'มะรืนนี้', 'สัปดาห์หน้า', 'เดือนหน้า'
+  - Support half-day leaves: "half day morning", "half day afternoon", "ครึ่งวันเช้า", "ครึ่งวันบ่าย", "morning", "afternoon", "เช้า", "บ่าย"
   - If no specific dates are mentioned, set intent to "incomplete_request" and dates to null
+  - If half-day is mentioned but no period specified, set intent to "incomplete_request"
 
   Message to analyze: "${text}"
 
@@ -55,16 +59,20 @@ async function parseMessageWithGemini(text: string): Promise<ParsedMessage> {
     "end_date": "YYYY-MM-DD" (if specific date mentioned),
     "reason": "reason for leave" (if mentioned),
     "leave_type": "Personal" | "Sick" | "Vacation" | "Other",
+    "is_half_day": true|false,
+    "half_day_period": "morning"|"afternoon" (required if is_half_day=true),
     "confidence": 0.0-1.0 (confidence in analysis)
   }
 
-  Valid examples (specific dates):
-  - "I want to take leave from 15 November to 17 November for family work" → {"intent": "leave_request", "start_date": "2025-11-15", "end_date": "2025-11-17", "reason": "family work", "leave_type": "Personal", "confidence": 0.9}
-  - "Sick leave on 20/11/2025" → {"intent": "leave_request", "start_date": "2025-11-20", "end_date": "2025-11-20", "reason": "sick", "leave_type": "Sick", "confidence": 0.95}
+  Valid examples:
+  - "I want to take leave from 15 November to 17 November for family work" → {"intent": "leave_request", "start_date": "2025-11-15", "end_date": "2025-11-17", "reason": "family work", "leave_type": "Personal", "is_half_day": false, "confidence": 0.9}
+  - "Sick leave on 20/11/2025" → {"intent": "leave_request", "start_date": "2025-11-20", "end_date": "2025-11-20", "reason": "sick", "leave_type": "Sick", "is_half_day": false, "confidence": 0.95}
+  - "Half day morning leave on 15 Nov 2025 for medical checkup" → {"intent": "leave_request", "start_date": "2025-11-15", "end_date": "2025-11-15", "reason": "medical checkup", "leave_type": "Personal", "is_half_day": true, "half_day_period": "morning", "confidence": 0.9}
+  - "ครึ่งวันบ่ายวันที่ 16/11/2025 ธุระส่วนตัว" → {"intent": "leave_request", "start_date": "2025-11-16", "end_date": "2025-11-16", "reason": "ธุระส่วนตัว", "leave_type": "Personal", "is_half_day": true, "half_day_period": "afternoon", "confidence": 0.9}
 
-  Invalid examples (relative dates):
-  - "Take 3 days leave today for family matters" → {"intent": "incomplete_request", "start_date": null, "end_date": null, "reason": "family matters", "leave_type": "Personal", "confidence": 0.8}
-  - "Sick leave tomorrow" → {"intent": "incomplete_request", "start_date": null, "end_date": null, "reason": "sick", "leave_type": "Sick", "confidence": 0.9}
+  Invalid examples:
+  - "Take 3 days leave today for family matters" → {"intent": "incomplete_request", "start_date": null, "end_date": null, "reason": "family matters", "leave_type": "Personal", "is_half_day": false, "confidence": 0.8}
+  - "Half day leave tomorrow" → {"intent": "incomplete_request", "start_date": null, "end_date": null, "reason": null, "leave_type": "Personal", "is_half_day": true, "half_day_period": null, "confidence": 0.7}
 
   Return JSON only, no other text.
   `
@@ -217,7 +225,8 @@ async function createLeaveRequest(userId: string, parsedMessage: ParsedMessage, 
   // Calculate days
   const startDate = new Date(parsedMessage.start_date!)
   const endDate = new Date(parsedMessage.end_date!)
-  const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const fullDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  const actualDays = parsedMessage.is_half_day ? 0.5 : fullDays
 
   // Map leave type to database format
   const mappedLeaveType = mapLeaveType(parsedMessage.leave_type || 'Personal')
@@ -228,16 +237,21 @@ async function createLeaveRequest(userId: string, parsedMessage: ParsedMessage, 
     mappedLeaveType,
     startDate: parsedMessage.start_date,
     endDate: parsedMessage.end_date,
-    days
+    fullDays,
+    actualDays,
+    isHalfDay: parsedMessage.is_half_day,
+    halfDayPeriod: parsedMessage.half_day_period
   })
 
   const leaveRequest = {
     user_id: userId,
     leave_type: mappedLeaveType,
     selected_dates: generateDateRange(startDate, endDate),
-    days: days,
+    days: actualDays,
     reason: parsedMessage.reason || 'Submitted via Telegram',
-    status: 'pending'
+    status: 'pending',
+    is_half_day: parsedMessage.is_half_day || false,
+    half_day_period: parsedMessage.is_half_day ? parsedMessage.half_day_period : null
   }
 
   const { data, error } = await supabase
@@ -319,7 +333,7 @@ async function handleConnectCommand(message: TelegramMessage) {
 
     await sendTelegramReply(
       message.chat.id,
-      `✅ Account connected successfully!\n\n👤 ${profile.full_name || email}\n📧 ${email}\n🔗 Telegram ID: ${message.from.id}\n\nFound ${leaveRequestCount || 0} leave requests in system\n\nYou can now:\n• Request leave in natural language\n• Check leave status\n\nTry typing: "Take 3 days leave today for family matters"`
+      `✅ Account connected successfully!\n\n👤 ${profile.full_name || email}\n📧 ${email}\n🔗 Telegram ID: ${message.from.id}\n\nFound ${leaveRequestCount || 0} leave requests in system\n\nYou can now:\n• Request leave in natural language\n• Check leave status\n\nTry typing: "Half day morning leave on 15 Nov 2025 for medical checkup"`
     )
 
     // Check if already connected
@@ -362,7 +376,7 @@ async function handleConnectCommand(message: TelegramMessage) {
     // Success!
     await sendTelegramReply(
       message.chat.id,
-      `✅ Account connected successfully!\n\n👤 Email: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nYou can now:\n• Request leave in natural language\n• Check leave status\n\nTry typing: "Take 3 days leave today for family matters"`
+      `✅ Account connected successfully!\n\n👤 Email: ${email}\n🔗 Telegram ID: ${message.from.id}\n\nYou can now:\n• Request leave in natural language\n• Check leave status\n\nTry typing: "Half day morning leave on 15 Nov 2025 for medical checkup"`
     )
 
     console.log('Successfully connected Telegram user:', message.from.id, 'to email:', email)
@@ -424,7 +438,7 @@ export async function POST(request: NextRequest) {
     if (parsedMessage.intent === 'incomplete_request') {
       await sendTelegramReply(
         message.chat.id,
-        '❌ Please specify specific dates for your leave request.\n\nExamples:\n• "Take leave from 15 November to 17 November for family matters"\n• "Sick leave on 20/11/2025"\n• "Vacation from November 15-17, 2025"\n\nDo not use relative dates like "today", "tomorrow", or "next week".'
+        '❌ Please specify specific dates for your leave request.\n\nExamples:\n• "Take leave from 15 November to 17 November for family matters"\n• "Sick leave on 20/11/2025"\n• "Half day morning leave on 15 Nov 2025 for medical checkup"\n• "Vacation from November 15-17, 2025"\n\nDo not use relative dates like "today", "tomorrow", or "next week".\nFor half-day requests, specify "morning" or "afternoon".'
       )
       return NextResponse.json({ ok: true })
     }
@@ -432,7 +446,7 @@ export async function POST(request: NextRequest) {
     if (parsedMessage.intent !== 'leave_request' || parsedMessage.confidence < 0.7) {
       await sendTelegramReply(
         message.chat.id,
-        '❓ I don\'t understand your message, please try again\n\nExamples:\n• "Take leave from 15 November to 17 November for family matters"\n• "Sick leave on 20/11/2025"\n• "Vacation from November 15-17, 2025"\n\nOr type:\n• "/connect your-email@example.com" to connect your account'
+        '❓ I don\'t understand your message, please try again\n\nExamples:\n• "Take leave from 15 November to 17 November for family matters"\n• "Sick leave on 20/11/2025"\n• "Half day morning leave on 15 Nov 2025 for medical checkup"\n• "Vacation from November 15-17, 2025"\n\nOr type:\n• "/connect your-email@example.com" to connect your account'
       )
       return NextResponse.json({ ok: true })
     }
@@ -461,9 +475,10 @@ export async function POST(request: NextRequest) {
 👤 ${userMapping.profile.full_name || userMapping.profile.email}
 📅 From: ${parsedMessage.start_date}
 📅 To: ${parsedMessage.end_date}
-📊 Days: ${leaveRequest.days} day(s)
-💬 Reason: ${parsedMessage.reason}
+📊 Days: ${leaveRequest.days} day${leaveRequest.days === 1 ? '' : '(s)'}
+💬 Reason: ${parsedMessage.reason || 'Not specified'}
 🏷️ Type: ${parsedMessage.leave_type}
+${parsedMessage.is_half_day ? `⏰ Period: ${parsedMessage.half_day_period === 'morning' ? 'Morning' : 'Afternoon'}` : ''}
 
 Status: ⏳ Pending approval`
 

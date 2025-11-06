@@ -5,7 +5,6 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getHolidayForDate, getHolidaysForMonthAsync, getCountryFlag, getCountryName } from "@/lib/holidays"
 import { leaveRequestsApi } from "@/lib/database"
 
 interface LeaveRequest {
@@ -24,8 +23,8 @@ interface LeaveRequest {
   approvedByName?: string
 }
 
-// Convert leave requests and holidays to FullCalendar events
-function convertToCalendarEvents(leaveRequests: LeaveRequest[], holidays: any[]) {
+// Convert leave requests to FullCalendar events
+function convertToCalendarEvents(leaveRequests: LeaveRequest[]) {
   const events: any[] = []
 
   // Convert leave requests to events
@@ -53,35 +52,12 @@ function convertToCalendarEvents(leaveRequests: LeaveRequest[], holidays: any[])
     })
   })
 
-  // Convert holidays to events
-  holidays.forEach(holiday => {
-    events.push({
-      id: `holiday-${holiday.date}`,
-      title: `${getCountryFlag(holiday.country)} ${holiday.name}`,
-      start: holiday.date,
-      end: holiday.date,
-      allDay: true,
-      backgroundColor: holiday.country === 'TH' ? '#dc2626' : '#ea580c', // Red for Thailand, Orange for India
-      borderColor: holiday.country === 'TH' ? '#b91c1c' : '#c2410c',
-      textColor: '#ffffff',
-      extendedProps: {
-        type: 'holiday',
-        country: holiday.country,
-        countryName: getCountryName(holiday.country),
-        holidayName: holiday.name,
-        holidayType: holiday.type,
-        description: holiday.description
-      }
-    })
-  })
-
   return events
 }
 
 export function LeaveCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([])
-  const [holidaysThisMonth, setHolidaysThisMonth] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [calendarEvents, setCalendarEvents] = useState<any[]>([])
@@ -102,36 +78,12 @@ export function LeaveCalendar() {
     loadLeaveRequests()
   }, [])
 
-  // Load holidays independently when month changes
+  // Update calendar events when leave requests change
   useEffect(() => {
-    const loadHolidays = async () => {
-      try {
-        console.log(`Loading holidays for ${currentMonth.getFullYear()}/${currentMonth.getMonth() + 1}...`)
-
-        const holidays = await getHolidaysForMonthAsync(
-          currentMonth.getFullYear(),
-          currentMonth.getMonth()
-        )
-
-        console.log(`Loaded ${holidays.length} holidays`)
-        setHolidaysThisMonth(holidays)
-        setError(null)
-      } catch (err) {
-        console.error('Error loading holidays:', err)
-        setError('Failed to load holidays')
-        setHolidaysThisMonth([])
-      }
-    }
-
-    loadHolidays()
-  }, [currentMonth])
-
-  // Update calendar events when both leave requests and holidays change
-  useEffect(() => {
-    const events = convertToCalendarEvents(leaveRequests, holidaysThisMonth)
+    const events = convertToCalendarEvents(leaveRequests)
     setCalendarEvents(events)
     setLoading(false) // Set loading to false when events are updated
-  }, [leaveRequests, holidaysThisMonth])
+  }, [leaveRequests])
 
   // Handle event click to show details
   const handleEventClick = useCallback((info: any) => {

@@ -14,6 +14,8 @@ export interface LeaveRequest {
   approvedAt?: string | null
   approvedBy?: string | null
   approvedByName?: string | null
+  isHalfDay: boolean
+  halfDayPeriod?: 'morning' | 'afternoon'
 }
 
 export interface LeaveStats {
@@ -41,7 +43,7 @@ export const leaveRequestsApi = {
       console.log('📥 Querying leave_requests table...')
       const { data: leaveRequests, error: leaveError } = await supabase
         .from('leave_requests')
-        .select('*')
+        .select('*, is_half_day, half_day_period')
         .eq('user_id', userId)
         .order('submitted_at', { ascending: false })
 
@@ -92,6 +94,8 @@ export const leaveRequestsApi = {
         approvedAt: item.approved_at,
         approvedBy: item.approved_by,
         approvedByName: item.approved_by_name,
+        isHalfDay: item.is_half_day || false,
+        halfDayPeriod: item.half_day_period,
       }))
     } catch (err) {
       console.error('Unexpected error fetching user leave requests:', err)
@@ -155,6 +159,8 @@ export const leaveRequestsApi = {
           approvedAt: item.approved_at,
           approvedBy: item.approved_by,
           approvedByName: item.approved_by_name,
+          isHalfDay: item.is_half_day || false,
+          halfDayPeriod: item.half_day_period,
         }
       })
     } catch (err) {
@@ -221,6 +227,8 @@ export const leaveRequestsApi = {
         days: leaveRequest.days,
         reason: leaveRequest.reason,
         status: leaveRequest.status,
+        is_half_day: leaveRequest.isHalfDay,
+        half_day_period: leaveRequest.isHalfDay ? leaveRequest.halfDayPeriod : null,
       }
 
       console.log('📝 Inserting data:', insertData)
@@ -442,7 +450,7 @@ export const leaveStatsApi = {
     try {
       const { data, error } = await supabase
         .from('leave_requests')
-        .select('leave_type, days, status')
+        .select('leave_type, days, status, is_half_day, half_day_period')
         .eq('user_id', userId)
 
       if (error) {
@@ -459,16 +467,19 @@ export const leaveStatsApi = {
       const stats = { personalUsed: 0, vacationUsed: 0, sickUsed: 0, pending: 0 }
 
       data?.forEach(request => {
-        if (request.status === 'approved' || request.status === 'pending') {
+        if (request.status === 'approved') {
+          // For approved requests, calculate based on half-day
+          const daysToAdd = request.is_half_day ? 0.5 : request.days
+
           switch (request.leave_type) {
             case 'Personal Leave':
-              stats.personalUsed += request.days
+              stats.personalUsed += daysToAdd
               break
             case 'Vacation Leave':
-              stats.vacationUsed += request.days
+              stats.vacationUsed += daysToAdd
               break
             case 'Sick Leave':
-              stats.sickUsed += request.days
+              stats.sickUsed += daysToAdd
               break
           }
         }

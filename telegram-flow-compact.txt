@@ -1,0 +1,117 @@
+TELEGRAM BOT FLOW - COMPACT VERSION
+====================================
+
+┌─────────────────┐
+│   START        │
+│ 👤 User Message│
+└─────────────────┘
+        │
+        ▼
+┌─────────────────┐
+│ TELEGRAM API   │
+│ 📡 Forward to  │
+│ Vercel Webhook │
+└─────────────────┘
+        │
+        ▼
+┌─────────────────┐    ┌─────────────────┐
+│ VERCEL API     │────▶│ 🤖 GEMINI AI    │
+│ 🌐 Receive     │    │ Parse Message   │
+│ POST Request   │    └─────────────────┘
+└─────────────────┘            │
+        │                      ▼
+        ▼            ┌─────────────────┐
+┌─────────────────┐  │ 🎯 INTENT       │
+│ 🔍 CHECK TYPE  │◀─┤ DETECTED        │
+│                │  │ • connect       │
+│ • /connect     │  │ • leave_request │
+│ • leave msg    │  │ • stop          │
+│ • stop/bye     │  └─────────────────┘
+└─────────────────┘
+        │
+        ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ 🎯 CONNECT     │    │ 📋 LEAVE        │    │ 🛑 STOP         │
+│ ACCOUNT        │    │ REQUEST         │    │ CONVERSATION    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ 📧 EXTRACT     │    │ 📅 PARSE        │    │ 👋 GOODBYE      │
+│ EMAIL          │    │ DETAILS         │    │ MESSAGE        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ 👥 VALIDATE    │    │ 👤 CHECK        │    │ 🏁 END          │
+│ USER EXISTS    │    │ MAPPING         │    │ CONVERSATION    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                       │
+        ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ ✅ CONNECTED    │    │ 📝 CREATE       │────▶│ ❌ NOT CONNECTED│
+│ SUCCESS         │    │ LEAVE REQUEST   │    └─────────────────┘
+└─────────────────┘    └─────────────────┘            │
+        │                       │                     │
+        ▼                       ▼                     ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ 🎉 WELCOME      │    │ ✅ SUBMITTED     │    │ 🔄 CONNECT      │
+│ READY TO CHAT  │    │ SUCCESS          │    │ ACCOUNT         │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+        │                       │                     │
+        ▼                       ▼                     │
+┌─────────────────┐    ┌─────────────────┐           │
+│ 💬 LOOP         │    │ 📤 RESPONSE     │           │
+│ CONVERSATION    │    │ SENT            │           │
+│ CONTINUES       │    └─────────────────┘           │
+└─────────────────┘            │                     │
+        │                      │                     │
+        └──────────────────────┼─────────────────────┘
+                               ▼
+                   ┌─────────────────┐
+                   │    END LOOP     │
+                   │ 🏁 TERMINATE    │
+                   └─────────────────┘
+
+================================================================================
+
+QUICK FLOW SUMMARY:
+===================
+
+1. 👤 User → Telegram → Vercel API
+2. 🔍 Check message type (/connect/leave/stop)
+3. 🤖 Send to Gemini AI for parsing
+4. 🎯 Route based on intent:
+   - CONNECT: Extract email → Validate → Create mapping → Welcome
+   - LEAVE: Parse details → Check mapping → Create request → Confirm
+   - STOP: Detect intent → Send goodbye → End conversation
+5. 🔄 Loop until user stops or session ends
+
+================================================================================
+
+EXAMPLE WORKFLOW:
+=================
+
+CONNECT PHASE:
+User: /connect john@example.com
+Bot: ✅ Connected! Ready to use...
+
+CHAT LOOP:
+User: Take 3 days leave today
+Bot: ✅ Leave submitted successfully!
+
+User: bye
+Bot: 👋 Goodbye!
+
+================================================================================
+
+KEY DECISIONS:
+==============
+
+• Message Type → Intent Detection
+• Intent → Specific Flow (Connect/Leave/Stop)
+• User Validation → Success/Error Paths
+• Response → Continue Loop or End
+
+================================================================================
+

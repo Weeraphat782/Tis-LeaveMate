@@ -25,11 +25,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <TooltipProvider>
-          <AuthProvider>
-            {children}
-            <Toaster />
-            <Analytics />
-          </AuthProvider>
+        <AuthProvider>
+          {children}
+          <Toaster />
+          <Analytics />
+        </AuthProvider>
         </TooltipProvider>
       </body>
     </html>

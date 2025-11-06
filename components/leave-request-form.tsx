@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { MultiDatePicker } from "@/components/ui/multi-date-picker"
 import { leaveRequestsApi } from "@/lib/database"
@@ -32,6 +34,8 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
   const [leaveType, setLeaveType] = useState("")
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [reason, setReason] = useState("")
+  const [isHalfDay, setIsHalfDay] = useState(false)
+  const [halfDayPeriod, setHalfDayPeriod] = useState<'morning' | 'afternoon'>('morning')
 
   const calculateDays = () => {
     return selectedDates.length
@@ -109,6 +113,8 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
       approvedAt: null,
       approvedBy: null,
       approvedByName: null,
+      isHalfDay,
+      halfDayPeriod: isHalfDay ? halfDayPeriod : undefined,
     })
 
       console.log('📥 createLeaveRequest result:', result)
@@ -207,6 +213,47 @@ export function LeaveRequestForm({ currentUser, onSuccess }: LeaveRequestFormPro
                   }))
                   .join(", ")}
               </div>
+            </div>
+          )}
+
+          {/* Half Day Options */}
+          {days > 0 && (
+            <div className="space-y-3 p-3 sm:p-4 border rounded-lg bg-muted/50">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="halfDay"
+                  checked={isHalfDay}
+                  onCheckedChange={(checked) => {
+                    setIsHalfDay(checked as boolean)
+                    if (!checked) {
+                      setHalfDayPeriod('morning')
+                    }
+                  }}
+                />
+                <Label htmlFor="halfDay" className="text-sm font-medium">
+                  Half-day leave
+                </Label>
+              </div>
+
+              {isHalfDay && (
+                <div className="ml-6 space-y-2">
+                  <Label className="text-sm">Select period:</Label>
+                  <RadioGroup
+                    value={halfDayPeriod}
+                    onValueChange={(value) => setHalfDayPeriod(value as 'morning' | 'afternoon')}
+                    className="flex flex-col space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="morning" id="morning" />
+                      <Label htmlFor="morning" className="text-sm">Morning</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="afternoon" id="afternoon" />
+                      <Label htmlFor="afternoon" className="text-sm">Afternoon</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
             </div>
           )}
 

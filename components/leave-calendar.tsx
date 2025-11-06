@@ -21,6 +21,8 @@ interface LeaveRequest {
   approvedAt?: string
   approvedBy?: string
   approvedByName?: string
+  isHalfDay: boolean
+  halfDayPeriod?: 'morning' | 'afternoon'
 }
 
 // Convert leave requests to FullCalendar events
@@ -30,14 +32,21 @@ function convertToCalendarEvents(leaveRequests: LeaveRequest[]) {
   // Convert leave requests to events
   leaveRequests.forEach(request => {
     request.selectedDates.forEach(dateStr => {
+      // Build title with half-day info if applicable
+      let title = `${request.userName} - ${request.leaveType}`
+      if (request.isHalfDay && request.halfDayPeriod) {
+        const periodText = request.halfDayPeriod === 'morning' ? 'Half-day Morning' : 'Half-day Afternoon'
+        title = `${request.userName} - ${request.leaveType} (${periodText})`
+      }
+
       events.push({
         id: `leave-${request.id}-${dateStr}`,
-        title: `${request.userName} - ${request.leaveType}`,
+        title: title,
         start: dateStr,
         end: dateStr, // All-day event
         allDay: true,
-        backgroundColor: '#3b82f6', // Blue for leaves
-        borderColor: '#2563eb',
+        backgroundColor: request.isHalfDay ? '#fbbf24' : '#3b82f6', // Yellow for half-day, Blue for full-day
+        borderColor: request.isHalfDay ? '#d97706' : '#2563eb',
         textColor: '#ffffff',
         extendedProps: {
           type: 'leave',
@@ -46,7 +55,9 @@ function convertToCalendarEvents(leaveRequests: LeaveRequest[]) {
           leaveType: request.leaveType,
           reason: request.reason,
           days: request.days,
-          submittedAt: request.submittedAt
+          submittedAt: request.submittedAt,
+          isHalfDay: request.isHalfDay,
+          halfDayPeriod: request.halfDayPeriod
         }
       })
     })

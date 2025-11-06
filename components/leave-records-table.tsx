@@ -452,8 +452,13 @@ export function LeaveRecordsTable({ currentUser, viewMode, refreshKey }: LeaveRe
                         <h3 className="font-semibold text-sm sm:text-base">{record.leaveType}</h3>
                         {getStatusBadge(record.status)}
                         <span className="text-xs sm:text-sm text-muted-foreground">
-                          {record.days} day{record.days !== 1 ? "s" : ""}
+                          {record.isHalfDay ? "0.5" : record.days} day{record.isHalfDay ? "" : record.days !== 1 ? "s" : ""}
                         </span>
+                        {record.isHalfDay && record.halfDayPeriod && (
+                          <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-400 font-medium">
+                            Half-day {record.halfDayPeriod === 'morning' ? 'Morning' : 'Afternoon'}
+                          </Badge>
+                        )}
                       </div>
 
                       {viewMode === "team" && (

@@ -11,8 +11,9 @@ DELETE FROM approver_emails WHERE email IN ('approver1@company.com', 'approver2@
 
 -- Insert your real approver emails here:
 INSERT INTO approver_emails (email, can_approve, created_by, notes) VALUES
-  ('weeraphat.issaraphon1@gmail.com', true, 'system', 'Admin - Weeraphat'),
-  ('admin@tis.com', true, 'system', 'TIS Admin') -- Add more as needed
+  ('shivek@tis.co.th', true, 'system', 'Admin - Shivek'),
+  ('sham@tis.co.th', true, 'system', 'Admin - Sham'),
+  ('weeraphat.issaraphon1@gmail.com', true, 'system', 'Admin - Weeraphat') -- Keep existing if needed
 ON CONFLICT (email) DO UPDATE SET
   can_approve = true,
   notes = EXCLUDED.notes;
@@ -38,5 +39,5 @@ SELECT
   can_approve,
   CASE WHEN can_approve THEN 'CAN APPROVE' ELSE 'CANNOT APPROVE' END as status
 FROM approver_emails
-WHERE email IN ('weeraphat.issaraphon1@gmail.com', 'test@example.com') -- Add test emails
+WHERE email IN ('shivek@tis.co.th', 'sham@tis.co.th', 'weeraphat.issaraphon1@gmail.com', 'test@example.com')
 ORDER BY email;
